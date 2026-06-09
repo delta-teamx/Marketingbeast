@@ -1,0 +1,18 @@
+# Netlify deploy config for the Presence web app.
+# The official Next.js plugin handles the App Router build + serverless functions.
+[build]
+  base = "apps/web"
+  command = "pnpm build"
+  publish = ".next"
+
+[build.environment]
+  # Build from the monorepo root so workspace deps resolve.
+  NETLIFY_USE_PNPM = "true"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
+
+# Set in the Netlify UI (not committed):
+#   NEXT_PUBLIC_SUPABASE_URL
+#   NEXT_PUBLIC_SUPABASE_ANON_KEY
+#   NEXT_PUBLIC_API_BASE_URL

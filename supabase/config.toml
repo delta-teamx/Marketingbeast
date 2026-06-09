@@ -1,0 +1,28 @@
+# Minimal Supabase CLI config for local dev. Ports here match the defaults in
+# .env.example (API 54321, DB 54322). If `supabase start` reports a schema
+# mismatch with your CLI version, run `supabase init` to regenerate, then
+# re-apply these ports.
+project_id = "presence"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "graphql_public"]
+
+[db]
+port = 54322
+major_version = 16
+
+[studio]
+enabled = true
+port = 54323
+
+[auth]
+enabled = true
+# Local sign-in/sign-up for development.
+site_url = "http://localhost:3000"
+additional_redirect_urls = ["http://localhost:3000"]
+
+[auth.email]
+enable_signup = true
+enable_confirmations = false

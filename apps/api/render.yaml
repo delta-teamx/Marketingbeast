@@ -1,0 +1,55 @@
+# Render blueprint for the Presence API (Tier A).
+# Deploy: connect this repo in Render and point at apps/api/render.yaml.
+services:
+  - type: web
+    name: presence-api
+    runtime: docker
+    rootDir: apps/api
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /health
+    # Run migrations before the server starts each deploy.
+    preDeployCommand: alembic upgrade head
+    envVars:
+      - key: API_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false # Supabase connection string (asyncpg) — set as a secret
+      - key: SUPABASE_JWT_SECRET
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: FERNET_KEY
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: API_CORS_ORIGINS
+        sync: false # e.g. https://your-netlify-app.netlify.app
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: presence-redis
+          property: connectionString
+
+  - type: worker
+    name: presence-worker
+    runtime: docker
+    rootDir: apps/api
+    dockerfilePath: ./Dockerfile
+    dockerCommand: celery -A app.worker.celery_app.celery_app worker --loglevel=info
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: SUPABASE_JWT_SECRET
+        sync: false
+      - key: FERNET_KEY
+        sync: false
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: presence-redis
+          property: connectionString
+
+  - type: keyvalue
+    name: presence-redis
+    plan: free
+    ipAllowList: [] # only reachable from Render services

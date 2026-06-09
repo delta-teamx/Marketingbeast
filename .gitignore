@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+htmlcov/
+.coverage
+
+# Node / Next.js
+node_modules/
+.next/
+out/
+.turbo/
+dist/
+*.tsbuildinfo
+playwright-report/
+test-results/
+
+# Env / secrets
+.env
+.env.local
+.env.*.local
+*.local
+
+# Supabase local stack
+supabase/.branches/
+supabase/.temp/
+
+# OS / editors
+.DS_Store
+.idea/
+.vscode/
+*.log
