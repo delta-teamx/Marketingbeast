@@ -14,7 +14,7 @@ from collections.abc import AsyncGenerator
 
 # --- Test environment (must precede any app import) ---
 os.environ.setdefault("SUPABASE_JWT_SECRET", "test-jwt-secret-at-least-32-characters-long!!")
-os.environ.setdefault("FERNET_KEY", "zZ1u9o0o0Wm6m1xLNt8m9o0g1Z6f9h2t3kQpQwErTy=")
+os.environ.setdefault("FERNET_KEY", "SjaxcdlQ7S94Jw19vRzrRIeRJS0IvzNPIVFllzUMI-w=")
 os.environ.setdefault("API_ENV", "test")
 
 import jwt  # noqa: E402
