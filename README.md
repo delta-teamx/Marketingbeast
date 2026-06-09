@@ -4,9 +4,11 @@ An AI marketing employee for small businesses and agencies. Enter a business URL
 and Presence audits your social presence, then generates, schedules, publishes,
 and reports on content across Facebook and Instagram — with near-zero effort.
 
-> **Status: Phase 0 (Foundations).** This repo currently contains the runnable
-> skeleton — auth, multi-tenant data model, background-job wiring, CI, and smoke
-> tests. Feature phases (publishing, audit, content engine, …) build on top.
+> **Status: Phase 1 (Connect & Publish).** On top of the Phase 0 foundation, the
+> publishing spine is in: connect a Facebook Page + Instagram account, compose a
+> post, schedule it, and auto-publish via the Meta Graph API through a Celery
+> queue. A `META_MODE=mock` adapter makes the whole pipeline runnable and tested
+> without real Meta credentials. (Audit, content engine, analytics, … come next.)
 
 ## Architecture: two tiers with a hard boundary
 
@@ -89,14 +91,38 @@ make test            # backend (pytest) + web (vitest)
 CI (`.github/workflows/ci.yml`) runs lint + migrations + tests for both apps on
 every push, against a `pgvector` Postgres and Redis.
 
-## Data model (Phase 0)
+## Connect & Publish (Phase 1)
+
+Tier A publishing runs entirely through Meta's **official** Graph API, behind one
+adapter with two modes (`META_MODE`): `mock` (default — an in-process fake, no
+creds, used by dev and the test suite) and `live` (the real Graph API).
+
+- **Connect:** `GET /api/integrations/meta/oauth/start` → Facebook login dialog;
+  `GET /api/integrations/meta/oauth/callback` exchanges the code (state is signed,
+  CSRF-safe) and stores Pages + linked IG accounts as `SocialAccount`s with
+  **encrypted tokens**. `POST /api/integrations/meta/connect-mock` connects fake
+  accounts in mock mode for dev/tests.
+- **Compose & schedule:** `POST /api/content` creates a draft or scheduled item
+  targeting one or more connected accounts; `GET /api/content?brand_id=` lists.
+- **Publish:** `POST /api/content/{id}/publish` publishes now (inline); scheduled
+  items are published by the Celery **beat poller** (`presence.publish_due`) once
+  their time arrives.
+- **Idempotency:** a target that already has an `external_post_id` is never
+  published again — retries and the poller are safe (no double-posting).
+
+The web dashboard ties this together: create a brand, connect accounts, compose,
+schedule, and publish.
+
+## Data model
 
 - **Organization** — the multi-tenant boundary (a business or agency).
 - **Membership** — links a Supabase `auth.users` id to an Organization with a
   role (`owner` / `admin` / `member`). We keep no local users table.
 - **Brand** — a managed business within an Organization (voice profile, vertical).
-- **SocialAccount** *(stub)* — a connected FB Page / IG account; OAuth tokens are
-  encrypted at rest (Fernet) and never logged. The connect flow lands in Phase 1.
+- **SocialAccount** — a connected FB Page / IG account; OAuth tokens are encrypted
+  at rest (Fernet) and never logged.
+- **ContentItem / ContentTarget** — a post (draft/scheduled/published) and its
+  per-account publish result (external post id, status, error).
 
 ## Meta API scopes (Phase 1 — documented now for App Review prep)
 
@@ -118,6 +144,6 @@ to start before Phase 1 — flag early.
 
 ## Roadmap
 
-Phase 0 Foundations *(this)* → 1 Connect & Publish → 2 Flagship Audit →
+Phase 0 Foundations ✅ → 1 Connect & Publish ✅ → 2 Flagship Audit →
 3 Content Engine → 4 Analytics & Reports → 5 Engagement & Leads → 6 Ads →
 7 AI Video → 8 Agency / White-label → 9 Tier B Group Posting → 10 Vertical tuning.

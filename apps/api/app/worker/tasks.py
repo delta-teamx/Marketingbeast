@@ -1,11 +1,45 @@
-"""Example Celery task. Proves the worker + broker wiring end to end."""
+"""Celery tasks. Scheduled content is published by the `publish_due` beat job.
+
+Each task creates its own async engine/session so loops never cross between
+Celery's sync workers (asyncpg connections are loop-bound).
+"""
 
 from __future__ import annotations
 
+import asyncio
+
+from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+
+from app.core.config import get_settings
+from app.core.logging import get_logger
+from app.services.publishing import publish_due_content
 from app.worker.celery_app import celery_app
+
+logger = get_logger(__name__)
 
 
 @celery_app.task(name="presence.ping")
 def ping(value: str = "pong") -> str:
     """Trivial task used by the smoke test and as a template for real jobs."""
     return value
+
+
+async def _publish_due_async() -> list[str]:
+    settings = get_settings()
+    engine = create_async_engine(settings.database_url, pool_pre_ping=True)
+    session_factory = async_sessionmaker(engine, expire_on_commit=False)
+    try:
+        async with session_factory() as session:
+            ids = await publish_due_content(session)
+            return [str(i) for i in ids]
+    finally:
+        await engine.dispose()
+
+
+@celery_app.task(name="presence.publish_due")
+def publish_due() -> list[str]:
+    """Publish every scheduled item whose time has arrived (runs on a beat)."""
+    published = asyncio.run(_publish_due_async())
+    if published:
+        logger.info("published %d due item(s): %s", len(published), published)
+    return published

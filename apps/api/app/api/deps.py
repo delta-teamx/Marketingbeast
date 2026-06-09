@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import AuthenticatedUser, TokenError, decode_supabase_token
 from app.db.session import get_session
+from app.models.brand import Brand
 from app.models.membership import Membership, OrgRole
 
 # Re-export the DB dependency under an API-friendly name.
@@ -57,6 +58,20 @@ async def require_org_role(
             detail="Not a member of this organization",
         )
     return membership
+
+
+async def require_brand_access(
+    brand_id: uuid.UUID,
+    *,
+    session: AsyncSession,
+    user: AuthenticatedUser,
+) -> Brand:
+    """Load a brand and ensure the user is a member of its organization."""
+    brand = await session.get(Brand, brand_id)
+    if brand is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Brand not found")
+    await require_org_role(brand.org_id, session=session, user=user)
+    return brand
 
 
 CurrentUser = Depends(get_current_user)

@@ -47,6 +47,22 @@ class Settings(BaseSettings):
     llm_model: str = Field(default="claude-sonnet-4-6", alias="LLM_MODEL")
     llm_temperature: float = Field(default=0.7, alias="LLM_TEMPERATURE")
 
+    # Meta (Facebook / Instagram) — Tier A publishing.
+    # mode "mock" (default) uses an in-process fake; "live" hits the Graph API.
+    meta_mode: str = Field(default="mock", alias="META_MODE")
+    meta_app_id: str = Field(default="", alias="META_APP_ID")
+    meta_app_secret: str = Field(default="", alias="META_APP_SECRET")
+    meta_redirect_uri: str = Field(
+        default="http://localhost:8000/api/integrations/meta/oauth/callback",
+        alias="META_REDIRECT_URI",
+    )
+    meta_graph_version: str = Field(default="v21.0", alias="META_GRAPH_VERSION")
+    # Public base URL the OAuth dialog redirects the browser back to (the web app).
+    web_app_url: str = Field(default="http://localhost:3000", alias="WEB_APP_URL")
+
+    # Frequency (seconds) of the Celery beat job that publishes due content.
+    publish_poll_seconds: float = Field(default=60.0, alias="PUBLISH_POLL_SECONDS")
+
     @property
     def cors_origins_list(self) -> list[str]:
         return [o.strip() for o in self.api_cors_origins.split(",") if o.strip()]

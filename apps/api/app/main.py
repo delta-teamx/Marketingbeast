@@ -5,7 +5,15 @@ from __future__ import annotations
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.routers import auth, brands, health, organizations
+from app.api.routers import (
+    auth,
+    brands,
+    content,
+    health,
+    integrations_meta,
+    organizations,
+    social_accounts,
+)
 from app.core.config import get_settings
 from app.core.logging import configure_logging
 
@@ -32,6 +40,9 @@ def create_app() -> FastAPI:
     app.include_router(auth.router)
     app.include_router(organizations.router)
     app.include_router(brands.router)
+    app.include_router(social_accounts.router)
+    app.include_router(integrations_meta.router)
+    app.include_router(content.router)
     return app
 
 

@@ -28,3 +28,42 @@ export interface Brand {
   website_url: string | null;
   industry_vertical: string | null;
 }
+
+export type SocialProvider = "facebook_page" | "instagram";
+
+export interface SocialAccount {
+  id: string;
+  brand_id: string;
+  provider: SocialProvider;
+  external_id: string | null;
+  display_name: string | null;
+  status: string;
+}
+
+export type ContentStatus =
+  | "draft"
+  | "scheduled"
+  | "publishing"
+  | "published"
+  | "failed";
+
+export interface ContentTarget {
+  id: string;
+  social_account_id: string;
+  status: "pending" | "published" | "failed";
+  external_post_id: string | null;
+  permalink: string | null;
+  error: string | null;
+}
+
+export interface ContentItem {
+  id: string;
+  brand_id: string;
+  content_type: "post" | "reel" | "story";
+  status: ContentStatus;
+  body: string;
+  media_urls: string[] | null;
+  scheduled_time: string | null;
+  published_at: string | null;
+  targets: ContentTarget[];
+}
