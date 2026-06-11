@@ -129,6 +129,22 @@ running content engine in minutes.
   recommendations, and one-click seeding of the first week.
 - Mock LLM mode is deterministic, so the audit runs with no key/network.
 
+## AI Content Engine (Phase 3)
+
+Brand-voice generation that turns one input into a week of content.
+
+- **Generate** (`services/content_engine.py`): `POST /api/content/generate`
+  `{brand_id, prompt, count}` → brand-voice draft posts (voice = niche + profile)
+  with **hashtags** and a **best-time** hint. Deterministic in mock mode.
+- **Best-times:** `GET /api/content/best-times?brand_id=` — rules-based per
+  weekday now; upgrade to a learned per-account model once insights exist.
+- **Repurpose:** `POST /api/content/{id}/repurpose` → post / reel-script / story
+  variants.
+- **Approval workflow:** `POST /api/content/{id}/approve` (draft → approved →
+  schedule). `ContentItem` gains `approved`, `hashtags`, `suggested_time`
+  (migration 0005).
+- **Web:** a "Generate content" box plus Approve / Repurpose actions on each item.
+
 ## Lead Groups — niche-based Facebook group finder
 
 Detects a brand's niche from its website, then suggests high-potential Facebook
@@ -186,7 +202,7 @@ to start before Phase 1 — flag early.
 ## Roadmap
 
 Phase 0 Foundations ✅ → 1 Connect & Publish ✅ → 2 Flagship Audit ✅ →
-3 Content Engine → 4 Analytics & Reports → 5 Engagement & Leads → 6 Ads →
+3 Content Engine ✅ → 4 Analytics & Reports → 5 Engagement & Leads → 6 Ads →
 7 AI Video → 8 Agency / White-label → 9 Tier B Group Posting 🚧 → 10 Vertical tuning.
 
 Tier B (the user-operated, paced Facebook **group** posting extension) lives in

@@ -65,6 +65,9 @@ export interface ContentItem {
   media_urls: string[] | null;
   scheduled_time: string | null;
   published_at: string | null;
+  approved: boolean;
+  hashtags: string[] | null;
+  suggested_time: string | null;
   targets: ContentTarget[];
 }
 

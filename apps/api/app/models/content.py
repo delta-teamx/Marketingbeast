@@ -66,6 +66,12 @@ class ContentItem(Base, TimestampMixin):
         DateTime(timezone=True), nullable=True, index=True
     )
     published_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    # Approval workflow: draft → approved → scheduled (brief §6.2).
+    approved: Mapped[bool] = mapped_column(default=False, nullable=False)
+    approved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    # Hashtags + a rules-based best-time suggestion from the content engine.
+    hashtags: Mapped[list[str] | None] = mapped_column(ARRAY(String), nullable=True)
+    suggested_time: Mapped[str | None] = mapped_column(String(50), nullable=True)
 
     brand: Mapped[Brand] = relationship()
     targets: Mapped[list[ContentTarget]] = relationship(

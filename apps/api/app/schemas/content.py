@@ -30,6 +30,12 @@ class ContentTargetOut(BaseModel):
     error: str | None
 
 
+class ContentGenerateIn(BaseModel):
+    brand_id: uuid.UUID
+    prompt: str = Field(default="", max_length=2000)
+    count: int = Field(default=7, ge=1, le=14)
+
+
 class ContentItemOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -41,4 +47,7 @@ class ContentItemOut(BaseModel):
     media_urls: list[str] | None
     scheduled_time: datetime | None
     published_at: datetime | None
+    approved: bool
+    hashtags: list[str] | None
+    suggested_time: str | None
     targets: list[ContentTargetOut]

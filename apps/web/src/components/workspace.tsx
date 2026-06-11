@@ -119,6 +119,14 @@ export function Workspace() {
               })
             }
           />
+          <GenerateWeek
+            onGenerate={(prompt) =>
+              run(async () => {
+                await api.generateContent(brand.id, prompt);
+                await refreshBrandData(brand.id);
+              })
+            }
+          />
           <Composer
             accounts={accounts}
             onCreate={(input) =>
@@ -133,6 +141,18 @@ export function Workspace() {
             onPublish={(id) =>
               run(async () => {
                 await api.publishNow(id);
+                await refreshBrandData(brand.id);
+              })
+            }
+            onApprove={(id) =>
+              run(async () => {
+                await api.approveContent(id);
+                await refreshBrandData(brand.id);
+              })
+            }
+            onRepurpose={(id) =>
+              run(async () => {
+                await api.repurposeContent(id);
                 await refreshBrandData(brand.id);
               })
             }
@@ -314,12 +334,42 @@ function Composer({
   );
 }
 
+function GenerateWeek({ onGenerate }: { onGenerate: (prompt: string) => void }) {
+  const [prompt, setPrompt] = useState("");
+  return (
+    <section className="flex flex-col gap-2">
+      <h2 className="text-xl font-medium">Generate content</h2>
+      <p className="text-xs text-white/50">
+        One idea → a week of brand-voice drafts with hashtags and best-time hints.
+      </p>
+      <div className="flex gap-2">
+        <input
+          value={prompt}
+          onChange={(e) => setPrompt(e.target.value)}
+          placeholder="e.g. fall menu launch, a photo, a link…"
+          className="flex-1 rounded-md border border-white/15 bg-transparent px-3 py-2 text-sm"
+        />
+        <button
+          onClick={() => onGenerate(prompt)}
+          className="rounded-md bg-white px-4 py-2 text-sm font-medium text-black"
+        >
+          Generate a week
+        </button>
+      </div>
+    </section>
+  );
+}
+
 function ContentList({
   items,
   onPublish,
+  onApprove,
+  onRepurpose,
 }: {
   items: ContentItem[];
   onPublish: (id: string) => void;
+  onApprove: (id: string) => void;
+  onRepurpose: (id: string) => void;
 }) {
   return (
     <section className="flex flex-col gap-3">
@@ -336,21 +386,36 @@ function ContentList({
               <div className="flex flex-col gap-1">
                 <span className="text-sm">{item.body}</span>
                 <span className="text-xs text-white/50">
-                  {item.status}
-                  {item.scheduled_time
-                    ? ` · ${new Date(item.scheduled_time).toLocaleString()}`
-                    : ""}
+                  {item.content_type} · {item.status}
+                  {item.approved ? " · ✓ approved" : ""}
+                  {item.suggested_time ? ` · best ~${item.suggested_time}` : ""}
                   {` · ${item.targets.length} target(s)`}
                 </span>
               </div>
-              {(item.status === "draft" || item.status === "failed") && (
+              <div className="flex shrink-0 flex-col gap-1">
+                {!item.approved && (
+                  <button
+                    onClick={() => onApprove(item.id)}
+                    className="rounded-md border border-white/20 px-3 py-1 text-sm hover:bg-white/5"
+                  >
+                    Approve
+                  </button>
+                )}
                 <button
-                  onClick={() => onPublish(item.id)}
-                  className="rounded-md border border-white/20 px-3 py-1 text-sm hover:bg-white/5"
+                  onClick={() => onRepurpose(item.id)}
+                  className="rounded-md border border-white/10 px-3 py-1 text-xs text-white/60 hover:bg-white/5"
                 >
-                  Publish now
+                  Repurpose
                 </button>
-              )}
+                {(item.status === "draft" || item.status === "failed") && (
+                  <button
+                    onClick={() => onPublish(item.id)}
+                    className="rounded-md border border-white/20 px-3 py-1 text-sm hover:bg-white/5"
+                  >
+                    Publish now
+                  </button>
+                )}
+              </div>
             </li>
           ))}
         </ul>

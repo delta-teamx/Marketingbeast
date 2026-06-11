@@ -66,6 +66,17 @@ export const api = {
   publishNow: (id: string) =>
     call<ContentItem>(`/api/content/${id}/publish`, { method: "POST" }),
 
+  // --- Content engine ---
+  generateContent: (brandId: string, prompt: string, count = 7) =>
+    call<ContentItem[]>("/api/content/generate", {
+      method: "POST",
+      body: JSON.stringify({ brand_id: brandId, prompt, count }),
+    }),
+  approveContent: (id: string) =>
+    call<ContentItem>(`/api/content/${id}/approve`, { method: "POST" }),
+  repurposeContent: (id: string) =>
+    call<ContentItem[]>(`/api/content/${id}/repurpose`, { method: "POST" }),
+
   // --- Flagship audit ---
   runAudit: (brandId: string) =>
     call<AuditReport>(`/api/brands/${brandId}/audit/run`, { method: "POST" }),
