@@ -113,6 +113,22 @@ creds, used by dev and the test suite) and `live` (the real Graph API).
 The web dashboard ties this together: create a brand, connect accounts, compose,
 schedule, and publish.
 
+## Flagship audit (Phase 2)
+
+The hero feature: enter a brand's website and get a scored Presence audit plus a
+running content engine in minutes.
+
+- **Scoring** (`services/audit.py`): deterministic sub-scores (profile
+  completeness, platform breadth, posting consistency, engagement, content
+  quality) → overall score + **letter grade** (reproducible, not vibes), combined
+  with LLM qualitative judgment for the strategy brief + first-week plan.
+- **Endpoints:** `POST /api/brands/{id}/audit/run`, `GET /api/brands/{id}/audit`,
+  `POST /api/brands/{id}/audit/seed` ("Start running my account" → turns the plan
+  into draft posts).
+- **Web:** an "Presence audit" panel — grade, per-section bars, strategy brief,
+  recommendations, and one-click seeding of the first week.
+- Mock LLM mode is deterministic, so the audit runs with no key/network.
+
 ## Lead Groups — niche-based Facebook group finder
 
 Detects a brand's niche from its website, then suggests high-potential Facebook
@@ -146,6 +162,8 @@ groups to join for leads.
   per-account publish result (external post id, status, error).
 - **GroupSuggestion / GroupPostTask** — an AI-suggested Facebook group for lead
   gen, and a queued post for the Tier B extension to publish locally.
+- **AuditReport** — a scored Presence audit (grade, sections, strategy brief,
+  first-week content plan) for a brand.
 
 ## Meta API scopes (Phase 1 — documented now for App Review prep)
 
@@ -167,7 +185,7 @@ to start before Phase 1 — flag early.
 
 ## Roadmap
 
-Phase 0 Foundations ✅ → 1 Connect & Publish ✅ → 2 Flagship Audit →
+Phase 0 Foundations ✅ → 1 Connect & Publish ✅ → 2 Flagship Audit ✅ →
 3 Content Engine → 4 Analytics & Reports → 5 Engagement & Leads → 6 Ads →
 7 AI Video → 8 Agency / White-label → 9 Tier B Group Posting 🚧 → 10 Vertical tuning.
 

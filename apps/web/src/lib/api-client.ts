@@ -1,6 +1,7 @@
 "use client";
 
 import type {
+  AuditReport,
   Brand,
   ContentItem,
   GroupPostTask,
@@ -64,6 +65,14 @@ export const api = {
     }),
   publishNow: (id: string) =>
     call<ContentItem>(`/api/content/${id}/publish`, { method: "POST" }),
+
+  // --- Flagship audit ---
+  runAudit: (brandId: string) =>
+    call<AuditReport>(`/api/brands/${brandId}/audit/run`, { method: "POST" }),
+  getAudit: (brandId: string) =>
+    call<AuditReport | null>(`/api/brands/${brandId}/audit`),
+  seedFirstWeek: (brandId: string) =>
+    call<ContentItem[]>(`/api/brands/${brandId}/audit/seed`, { method: "POST" }),
 
   // --- Facebook group lead finder ---
   detectNiche: (brandId: string) =>

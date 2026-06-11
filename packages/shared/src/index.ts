@@ -68,6 +68,35 @@ export interface ContentItem {
   targets: ContentTarget[];
 }
 
+// --- Flagship audit ---
+
+export interface AuditSection {
+  key: string;
+  label: string;
+  score: number;
+  notes: string;
+}
+
+export interface AuditPlanItem {
+  day: string;
+  idea: string;
+  caption: string;
+  hashtags: string[];
+}
+
+export interface AuditReport {
+  id: string;
+  brand_id: string;
+  overall_score: number;
+  overall_grade: string;
+  sections: AuditSection[];
+  findings: string[];
+  recommendations: string[];
+  strategy_brief: string;
+  content_plan: AuditPlanItem[];
+  created_at: string;
+}
+
 // --- Facebook group lead finder ---
 
 export interface NicheProfile {

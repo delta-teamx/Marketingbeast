@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import type {
+  AuditReport,
   Brand,
   ContentItem,
   GroupPostTask,
@@ -17,20 +18,23 @@ export function Workspace() {
   const [content, setContent] = useState<ContentItem[]>([]);
   const [groups, setGroups] = useState<GroupSuggestion[]>([]);
   const [groupQueue, setGroupQueue] = useState<GroupPostTask[]>([]);
+  const [audit, setAudit] = useState<AuditReport | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   const refreshBrandData = useCallback(async (brandId: string) => {
-    const [accts, items, sugg, queue] = await Promise.all([
+    const [accts, items, sugg, queue, report] = await Promise.all([
       api.listSocialAccounts(brandId),
       api.listContent(brandId),
       api.listGroupSuggestions(brandId),
       api.listGroupQueue(brandId),
+      api.getAudit(brandId),
     ]);
     setAccounts(accts);
     setContent(items);
     setGroups(sugg);
     setGroupQueue(queue);
+    setAudit(report);
   }, []);
 
   useEffect(() => {
@@ -85,6 +89,21 @@ export function Workspace() {
         />
       ) : (
         <>
+          <AuditPanel
+            report={audit}
+            onRun={() =>
+              run(async () => {
+                await api.runAudit(brand.id);
+                await refreshBrandData(brand.id);
+              })
+            }
+            onSeed={() =>
+              run(async () => {
+                await api.seedFirstWeek(brand.id);
+                await refreshBrandData(brand.id);
+              })
+            }
+          />
           <Connections
             brand={brand}
             accounts={accounts}
@@ -475,5 +494,87 @@ function SuggestionCard({
         </div>
       )}
     </li>
+  );
+}
+
+function gradeColor(grade: string): string {
+  if (grade === "A" || grade === "B") return "text-emerald-400";
+  if (grade === "C" || grade === "D") return "text-amber-400";
+  return "text-red-400";
+}
+
+function AuditPanel({
+  report,
+  onRun,
+  onSeed,
+}: {
+  report: AuditReport | null;
+  onRun: () => void;
+  onSeed: () => void;
+}) {
+  return (
+    <section className="flex flex-col gap-3 rounded-md border border-white/10 p-4">
+      <div className="flex items-center justify-between">
+        <h2 className="text-xl font-medium">Presence audit</h2>
+        <button
+          onClick={onRun}
+          className="rounded-md bg-white px-4 py-2 text-sm font-medium text-black"
+        >
+          {report ? "Re-run audit" : "Run audit"}
+        </button>
+      </div>
+
+      {!report ? (
+        <p className="text-sm text-white/60">
+          Audit this brand’s social presence — get a scored report and a ready-to-go
+          first week of content.
+        </p>
+      ) : (
+        <>
+          <div className="flex items-baseline gap-3">
+            <span className={`text-5xl font-bold ${gradeColor(report.overall_grade)}`}>
+              {report.overall_grade}
+            </span>
+            <span className="text-white/60">{report.overall_score}/100 overall</span>
+          </div>
+
+          <div className="flex flex-col gap-2">
+            {report.sections.map((s) => (
+              <div key={s.key} className="flex items-center gap-3">
+                <span className="w-40 text-sm text-white/70">{s.label}</span>
+                <div className="h-2 flex-1 overflow-hidden rounded bg-white/10">
+                  <div
+                    className="h-full bg-white/70"
+                    style={{ width: `${s.score}%` }}
+                  />
+                </div>
+                <span className="w-10 text-right text-xs text-white/50">{s.score}</span>
+              </div>
+            ))}
+          </div>
+
+          {report.strategy_brief && (
+            <p className="text-sm text-white/70">{report.strategy_brief}</p>
+          )}
+
+          {report.recommendations.length > 0 && (
+            <ul className="list-disc pl-5 text-sm text-white/60">
+              {report.recommendations.map((r, i) => (
+                <li key={i}>{r}</li>
+              ))}
+            </ul>
+          )}
+
+          <div>
+            <button
+              onClick={onSeed}
+              className="rounded-md border border-white/20 px-4 py-2 text-sm hover:bg-white/5"
+            >
+              Start running my account → seed first week
+            </button>
+          </div>
+        </>
+      )}
+    </section>
   );
 }

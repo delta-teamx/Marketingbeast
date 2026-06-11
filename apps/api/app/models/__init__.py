@@ -1,5 +1,6 @@
 """ORM models. Import all here so Alembic autogenerate sees them."""
 
+from app.models.audit import AuditReport
 from app.models.brand import Brand
 from app.models.content import (
     ContentItem,
@@ -19,6 +20,7 @@ from app.models.organization import Organization
 from app.models.social_account import SocialAccount, SocialProvider
 
 __all__ = [
+    "AuditReport",
     "Brand",
     "ContentItem",
     "ContentStatus",
