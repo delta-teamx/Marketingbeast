@@ -15,8 +15,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user, get_db, require_brand_access
 from app.core.security import AuthenticatedUser
-from app.models.group import GroupPostTask, GroupSuggestion
-from app.schemas.group import GroupPostTaskOut, GroupQueueCreate
+from app.models.group import GroupPostTask, GroupSuggestion, GroupTaskStatus
+from app.schemas.group import GroupPostTaskOut, GroupQueueCreate, GroupTaskUpdate
 
 router = APIRouter(prefix="/api/automation", tags=["automation"])
 
@@ -59,3 +59,38 @@ async def list_group_queue(
         )
     ).all()
     return list(rows)
+
+
+# Allowed status transitions reported by the Tier B extension as it works a task.
+_ALLOWED_TRANSITIONS: dict[GroupTaskStatus, set[GroupTaskStatus]] = {
+    GroupTaskStatus.queued: {GroupTaskStatus.claimed, GroupTaskStatus.skipped},
+    GroupTaskStatus.claimed: {GroupTaskStatus.posted, GroupTaskStatus.skipped},
+}
+
+
+@router.patch("/group-queue/{task_id}", response_model=GroupPostTaskOut)
+async def update_group_task(
+    task_id: uuid.UUID,
+    payload: GroupTaskUpdate,
+    user: AuthenticatedUser = Depends(get_current_user),
+    session: AsyncSession = Depends(get_db),
+) -> GroupPostTask:
+    """The extension claims a task, then reports it posted/skipped after the user
+    confirms the post in their own browser. The server only records state."""
+    task = await session.get(GroupPostTask, task_id)
+    if task is None:
+        raise HTTPException(status_code=404, detail="Task not found")
+    await require_brand_access(task.brand_id, session=session, user=user)
+
+    allowed = _ALLOWED_TRANSITIONS.get(task.status, set())
+    if payload.status not in allowed:
+        raise HTTPException(
+            status_code=409,
+            detail=f"Cannot move task from {task.status.value} to {payload.status.value}",
+        )
+    task.status = payload.status
+    if payload.external_ref is not None:
+        task.external_ref = payload.external_ref
+    await session.commit()
+    await session.refresh(task)
+    return task

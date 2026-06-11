@@ -169,4 +169,8 @@ to start before Phase 1 — flag early.
 
 Phase 0 Foundations ✅ → 1 Connect & Publish ✅ → 2 Flagship Audit →
 3 Content Engine → 4 Analytics & Reports → 5 Engagement & Leads → 6 Ads →
-7 AI Video → 8 Agency / White-label → 9 Tier B Group Posting → 10 Vertical tuning.
+7 AI Video → 8 Agency / White-label → 9 Tier B Group Posting 🚧 → 10 Vertical tuning.
+
+Tier B (the user-operated, paced Facebook **group** posting extension) lives in
+[`apps/extension`](apps/extension/README.md) — assisted/confirmed, with hard-coded
+§9 guardrails, consuming the group-post queue. The backend never posts to groups.

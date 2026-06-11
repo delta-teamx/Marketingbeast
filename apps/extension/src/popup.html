@@ -1,0 +1,35 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      body {
+        font: 13px/1.45 system-ui, sans-serif;
+        width: 340px;
+        margin: 0;
+        padding: 14px;
+        background: #0b0b0f;
+        color: #f5f5f7;
+      }
+      h1 { font-size: 15px; margin: 0 0 8px; }
+      label { display: block; font-size: 11px; color: #9a9aa2; margin-top: 8px; }
+      input { width: 100%; box-sizing: border-box; background: #000; color: #eee;
+        border: 1px solid #333; border-radius: 6px; padding: 5px; }
+      button { background: #fff; color: #000; border: none; border-radius: 6px;
+        padding: 6px 10px; cursor: pointer; font-weight: 600; }
+      button.ghost { background: transparent; color: #ccc; border: 1px solid #333; font-weight: 400; }
+      .muted { color: #9a9aa2; }
+      .pill { display: inline-block; background: #1c1c22; border-radius: 999px;
+        padding: 2px 8px; font-size: 11px; }
+      .task { border: 1px solid #23232b; border-radius: 8px; padding: 8px; margin-top: 8px; }
+      .row { display: flex; gap: 6px; align-items: center; margin-top: 6px; flex-wrap: wrap; }
+      a { color: #8ab4ff; }
+      #blocked { color: #f6b73c; }
+    </style>
+  </head>
+  <body>
+    <h1>Presence — Group Assistant</h1>
+    <div id="app">Loading…</div>
+    <script type="module" src="popup.js"></script>
+  </body>
+</html>

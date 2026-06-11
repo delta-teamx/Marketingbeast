@@ -55,3 +55,10 @@ class GroupPostTaskOut(BaseModel):
     media_urls: list[str] | None
     status: GroupTaskStatus
     external_ref: str | None
+
+
+class GroupTaskUpdate(BaseModel):
+    """Status update from the Tier B extension as it claims / completes a task."""
+
+    status: GroupTaskStatus
+    external_ref: str | None = None

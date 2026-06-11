@@ -82,3 +82,22 @@ jobs:
         run: pnpm --filter @presence/web exec playwright install --with-deps chromium
       - name: E2E smoke (Playwright)
         run: pnpm --filter @presence/web test:e2e
+
+  extension:
+    name: Extension (typecheck, test, build)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Install deps
+        run: pnpm install --frozen-lockfile
+      - name: Typecheck
+        run: pnpm --filter @presence/extension typecheck
+      - name: Unit tests (guardrails)
+        run: pnpm --filter @presence/extension test
+      - name: Build
+        run: pnpm --filter @presence/extension build

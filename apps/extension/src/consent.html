@@ -1,0 +1,44 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Presence — Group posting safety terms</title>
+    <style>
+      body { font: 14px/1.6 system-ui, sans-serif; max-width: 640px; margin: 40px auto;
+        padding: 0 20px; background: #0b0b0f; color: #f5f5f7; }
+      h1 { font-size: 20px; }
+      li { margin: 6px 0; }
+      .risk { background: #2a1416; border: 1px solid #5b2b2f; border-radius: 8px; padding: 12px; }
+      button { background: #fff; color: #000; border: none; border-radius: 6px;
+        padding: 8px 14px; font-weight: 600; cursor: pointer; margin-top: 14px; }
+      button:disabled { opacity: 0.4; cursor: not-allowed; }
+    </style>
+  </head>
+  <body>
+    <h1>Before you use group posting</h1>
+    <p class="risk">
+      <b>This is higher-risk and you use it at your own risk.</b> Automating activity
+      on Facebook — even assisted — can lead Facebook to <b>restrict, suspend, or
+      permanently ban your account</b>. Only you can decide if that risk is acceptable.
+    </p>
+    <p>How Presence protects you (these limits cannot be turned off):</p>
+    <ul>
+      <li>Randomized, jittered delays between posts — never a fixed interval.</li>
+      <li>A daily cap, with a slow warm-up ramp for new/quiet accounts.</li>
+      <li>Posting only within the active hours you set.</li>
+      <li>Blocks near-identical copy-paste content across groups.</li>
+      <li>Assisted &amp; confirmed: <b>you</b> review and click Post — nothing is posted silently.</li>
+    </ul>
+    <p>What Presence will never do:</p>
+    <ul>
+      <li>Run this on our servers, or post on your behalf without you.</li>
+      <li>Ask for or store your Facebook password.</li>
+      <li>Use proxies, fingerprint spoofing, or any ban-evasion tricks.</li>
+    </ul>
+    <label><input type="checkbox" id="agree" /> I understand the account-ban risk and accept these terms.</label>
+    <br />
+    <button id="accept" disabled>Enable group posting</button>
+    <p id="done" style="color:#5fd39a"></p>
+    <script type="module" src="consent.js"></script>
+  </body>
+</html>

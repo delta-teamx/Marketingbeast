@@ -57,6 +57,30 @@ async def test_suggest_track_and_queue(client: AsyncClient, auth_headers: dict[s
         f"/api/automation/group-queue?brand_id={brand_id}", headers=auth_headers
     )
     assert len(q.json()) == 1
+    task_id = q.json()[0]["id"]
+
+    # The Tier B extension claims, then reports the user-confirmed post.
+    claimed = await client.patch(
+        f"/api/automation/group-queue/{task_id}",
+        headers=auth_headers,
+        json={"status": "claimed"},
+    )
+    assert claimed.json()["status"] == "claimed"
+    posted = await client.patch(
+        f"/api/automation/group-queue/{task_id}",
+        headers=auth_headers,
+        json={"status": "posted", "external_ref": "fbgroup:123"},
+    )
+    assert posted.json()["status"] == "posted"
+    assert posted.json()["external_ref"] == "fbgroup:123"
+
+    # Invalid transition (posted -> claimed) is rejected.
+    bad = await client.patch(
+        f"/api/automation/group-queue/{task_id}",
+        headers=auth_headers,
+        json={"status": "claimed"},
+    )
+    assert bad.status_code == 409
 
 
 async def test_niche_detect_persists(client: AsyncClient, auth_headers: dict[str, str]) -> None:
