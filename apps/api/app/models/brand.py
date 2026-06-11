@@ -6,7 +6,7 @@ import uuid
 from typing import TYPE_CHECKING, Any
 
 from sqlalchemy import ForeignKey, String
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.dialects.postgresql import ARRAY, JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base, TimestampMixin, uuid_pk
@@ -30,6 +30,9 @@ class Brand(Base, TimestampMixin):
     # Brand voice profile + colors are populated by the audit engine (Phase 2/3).
     voice_profile_json: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
     colors_json: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
+    # Niche detection (from the website) — drives Facebook group suggestions.
+    niche_summary: Mapped[str | None] = mapped_column(String(1000), nullable=True)
+    niche_keywords: Mapped[list[str] | None] = mapped_column(ARRAY(String), nullable=True)
 
     organization: Mapped[Organization] = relationship(back_populates="brands")
     social_accounts: Mapped[list[SocialAccount]] = relationship(

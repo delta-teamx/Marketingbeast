@@ -113,6 +113,27 @@ creds, used by dev and the test suite) and `live` (the real Graph API).
 The web dashboard ties this together: create a brand, connect accounts, compose,
 schedule, and publish.
 
+## Lead Groups — niche-based Facebook group finder
+
+Detects a brand's niche from its website, then suggests high-potential Facebook
+groups to join for leads.
+
+- **Compliance:** Meta deprecated the Groups API, so there's no way to query real
+  groups and **group posting is Tier B** (user-operated extension, never
+  server-driven). So suggestions are **advisory AI output** — group name, the
+  keyword to search on Facebook, an estimated size, relevance + lead-quality
+  scores, and a rationale + post angle. The user joins manually.
+- **Niche detection** (`services/website.py` + `services/group_finder.py`): fetch
+  the site (httpx + stdlib HTML stripper) → LLM classifies niche. `LLM_PROVIDER=mock`
+  (default) yields deterministic output so it runs with no key/network.
+- **Endpoints:** `POST /api/brands/{id}/niche/detect`,
+  `POST /api/group-suggestions/generate`, `GET /api/group-suggestions`,
+  `PATCH /api/group-suggestions/{id}` (track/dismiss).
+- **Tier B queue (storage only):** `POST/GET /api/automation/group-queue` stores
+  posts for the future browser extension to publish locally under the §9 pacing
+  guardrails. **The backend never posts to groups.**
+- **Web:** a "Lead Groups" panel in the dashboard — find, track, and queue posts.
+
 ## Data model
 
 - **Organization** — the multi-tenant boundary (a business or agency).
@@ -123,6 +144,8 @@ schedule, and publish.
   at rest (Fernet) and never logged.
 - **ContentItem / ContentTarget** — a post (draft/scheduled/published) and its
   per-account publish result (external post id, status, error).
+- **GroupSuggestion / GroupPostTask** — an AI-suggested Facebook group for lead
+  gen, and a queued post for the Tier B extension to publish locally.
 
 ## Meta API scopes (Phase 1 — documented now for App Review prep)
 

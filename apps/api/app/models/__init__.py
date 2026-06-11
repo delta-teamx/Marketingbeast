@@ -8,6 +8,12 @@ from app.models.content import (
     ContentType,
     TargetStatus,
 )
+from app.models.group import (
+    GroupPostTask,
+    GroupSuggestion,
+    GroupTaskStatus,
+    SuggestionStatus,
+)
 from app.models.membership import Membership, OrgRole
 from app.models.organization import Organization
 from app.models.social_account import SocialAccount, SocialProvider
@@ -18,10 +24,14 @@ __all__ = [
     "ContentStatus",
     "ContentTarget",
     "ContentType",
+    "GroupPostTask",
+    "GroupSuggestion",
+    "GroupTaskStatus",
     "Membership",
     "OrgRole",
     "Organization",
     "SocialAccount",
     "SocialProvider",
+    "SuggestionStatus",
     "TargetStatus",
 ]

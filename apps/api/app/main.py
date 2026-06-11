@@ -7,8 +7,10 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.routers import (
     auth,
+    automation,
     brands,
     content,
+    groups,
     health,
     integrations_meta,
     organizations,
@@ -43,6 +45,8 @@ def create_app() -> FastAPI:
     app.include_router(social_accounts.router)
     app.include_router(integrations_meta.router)
     app.include_router(content.router)
+    app.include_router(groups.router)
+    app.include_router(automation.router)
     return app
 
 

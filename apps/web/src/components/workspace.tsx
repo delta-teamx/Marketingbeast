@@ -1,7 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import type { Brand, ContentItem, SocialAccount } from "@presence/shared";
+import type {
+  Brand,
+  ContentItem,
+  GroupPostTask,
+  GroupSuggestion,
+  SocialAccount,
+} from "@presence/shared";
 import { api } from "@/lib/api-client";
 
 export function Workspace() {
@@ -9,16 +15,22 @@ export function Workspace() {
   const [brand, setBrand] = useState<Brand | null>(null);
   const [accounts, setAccounts] = useState<SocialAccount[]>([]);
   const [content, setContent] = useState<ContentItem[]>([]);
+  const [groups, setGroups] = useState<GroupSuggestion[]>([]);
+  const [groupQueue, setGroupQueue] = useState<GroupPostTask[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   const refreshBrandData = useCallback(async (brandId: string) => {
-    const [accts, items] = await Promise.all([
+    const [accts, items, sugg, queue] = await Promise.all([
       api.listSocialAccounts(brandId),
       api.listContent(brandId),
+      api.listGroupSuggestions(brandId),
+      api.listGroupQueue(brandId),
     ]);
     setAccounts(accts);
     setContent(items);
+    setGroups(sugg);
+    setGroupQueue(queue);
   }, []);
 
   useEffect(() => {
@@ -102,6 +114,32 @@ export function Workspace() {
             onPublish={(id) =>
               run(async () => {
                 await api.publishNow(id);
+                await refreshBrandData(brand.id);
+              })
+            }
+          />
+          <LeadGroups
+            suggestions={groups}
+            queue={groupQueue}
+            onFind={() =>
+              run(async () => {
+                await api.generateGroupSuggestions(brand.id);
+                await refreshBrandData(brand.id);
+              })
+            }
+            onUpdate={(id, status) =>
+              run(async () => {
+                await api.updateGroupSuggestion(id, status);
+                await refreshBrandData(brand.id);
+              })
+            }
+            onQueue={(suggestionId, body) =>
+              run(async () => {
+                await api.queueGroupPost({
+                  brand_id: brand.id,
+                  group_suggestion_id: suggestionId,
+                  body,
+                });
                 await refreshBrandData(brand.id);
               })
             }
@@ -299,5 +337,143 @@ function ContentList({
         </ul>
       )}
     </section>
+  );
+}
+
+function LeadGroups({
+  suggestions,
+  queue,
+  onFind,
+  onUpdate,
+  onQueue,
+}: {
+  suggestions: GroupSuggestion[];
+  queue: GroupPostTask[];
+  onFind: () => void;
+  onUpdate: (id: string, status: GroupSuggestion["status"]) => void;
+  onQueue: (suggestionId: string, body: string) => void;
+}) {
+  return (
+    <section className="flex flex-col gap-3">
+      <div className="flex items-center justify-between">
+        <h2 className="text-xl font-medium">Lead groups</h2>
+        <button
+          onClick={onFind}
+          className="rounded-md bg-white px-4 py-2 text-sm font-medium text-black"
+        >
+          Find lead groups
+        </button>
+      </div>
+      <p className="text-xs text-white/50">
+        AI-suggested Facebook groups to join for leads. Search the keyword on
+        Facebook to find each group. Queued posts are handled locally by the
+        Presence browser extension — never posted from our servers.
+      </p>
+      {suggestions.length === 0 ? (
+        <p className="text-sm text-white/60">
+          No suggestions yet — click “Find lead groups”.
+        </p>
+      ) : (
+        <ul className="flex flex-col gap-3">
+          {suggestions
+            .filter((s) => s.status !== "dismissed")
+            .map((s) => (
+              <SuggestionCard
+                key={s.id}
+                s={s}
+                onUpdate={onUpdate}
+                onQueue={onQueue}
+              />
+            ))}
+        </ul>
+      )}
+      {queue.length > 0 && (
+        <div className="flex flex-col gap-1">
+          <h3 className="text-sm font-medium text-white/80">
+            Queued group posts (Tier B)
+          </h3>
+          <ul className="flex flex-col gap-1 text-xs text-white/60">
+            {queue.map((t) => (
+              <li key={t.id}>
+                {t.status} · {t.body.slice(0, 60)}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </section>
+  );
+}
+
+function SuggestionCard({
+  s,
+  onUpdate,
+  onQueue,
+}: {
+  s: GroupSuggestion;
+  onUpdate: (id: string, status: GroupSuggestion["status"]) => void;
+  onQueue: (suggestionId: string, body: string) => void;
+}) {
+  const [body, setBody] = useState("");
+  const searchUrl = `https://www.facebook.com/search/groups/?q=${encodeURIComponent(
+    s.search_keyword,
+  )}`;
+  return (
+    <li className="flex flex-col gap-2 rounded-md border border-white/10 p-3">
+      <div className="flex items-center justify-between gap-3">
+        <span className="font-medium">{s.name}</span>
+        <span className="text-xs text-white/50">
+          relevance {s.relevance_score} · leads {s.lead_quality_score}
+          {s.estimated_size ? ` · ${s.estimated_size}` : ""}
+        </span>
+      </div>
+      {s.rationale && <p className="text-sm text-white/70">{s.rationale}</p>}
+      <div className="flex flex-wrap items-center gap-2 text-sm">
+        <a
+          href={searchUrl}
+          target="_blank"
+          rel="noreferrer"
+          className="rounded-md border border-white/20 px-3 py-1 hover:bg-white/5"
+        >
+          Search on Facebook
+        </a>
+        {s.status === "tracked" ? (
+          <span className="text-xs text-emerald-400">Tracked</span>
+        ) : (
+          <button
+            onClick={() => onUpdate(s.id, "tracked")}
+            className="rounded-md border border-white/20 px-3 py-1 hover:bg-white/5"
+          >
+            Track
+          </button>
+        )}
+        <button
+          onClick={() => onUpdate(s.id, "dismissed")}
+          className="rounded-md border border-white/10 px-3 py-1 text-white/60 hover:bg-white/5"
+        >
+          Dismiss
+        </button>
+      </div>
+      {s.status === "tracked" && (
+        <div className="flex gap-2">
+          <input
+            value={body}
+            onChange={(e) => setBody(e.target.value)}
+            placeholder={s.suggested_post_angle || "Write a post for this group…"}
+            className="flex-1 rounded-md border border-white/15 bg-transparent px-3 py-1 text-sm"
+          />
+          <button
+            disabled={!body}
+            onClick={() => {
+              onQueue(s.id, body);
+              setBody("");
+            }}
+            className="rounded-md bg-white px-3 py-1 text-sm font-medium text-black disabled:opacity-40"
+          >
+            Queue post
+          </button>
+        </div>
+      )}
+    </li>
   );
 }

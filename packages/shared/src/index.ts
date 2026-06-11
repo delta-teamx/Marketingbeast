@@ -67,3 +67,38 @@ export interface ContentItem {
   published_at: string | null;
   targets: ContentTarget[];
 }
+
+// --- Facebook group lead finder ---
+
+export interface NicheProfile {
+  category: string;
+  summary: string;
+  keywords: string[];
+}
+
+export type SuggestionStatus = "suggested" | "tracked" | "dismissed";
+
+export interface GroupSuggestion {
+  id: string;
+  brand_id: string;
+  name: string;
+  search_keyword: string;
+  estimated_size: string | null;
+  relevance_score: number;
+  lead_quality_score: number;
+  rationale: string | null;
+  suggested_post_angle: string | null;
+  status: SuggestionStatus;
+}
+
+export type GroupTaskStatus = "queued" | "claimed" | "posted" | "skipped";
+
+export interface GroupPostTask {
+  id: string;
+  brand_id: string;
+  group_suggestion_id: string;
+  body: string;
+  media_urls: string[] | null;
+  status: GroupTaskStatus;
+  external_ref: string | null;
+}

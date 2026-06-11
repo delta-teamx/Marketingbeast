@@ -3,7 +3,10 @@
 import type {
   Brand,
   ContentItem,
+  GroupPostTask,
+  GroupSuggestion,
   Me,
+  NicheProfile,
   Organization,
   SocialAccount,
 } from "@presence/shared";
@@ -61,4 +64,31 @@ export const api = {
     }),
   publishNow: (id: string) =>
     call<ContentItem>(`/api/content/${id}/publish`, { method: "POST" }),
+
+  // --- Facebook group lead finder ---
+  detectNiche: (brandId: string) =>
+    call<NicheProfile>(`/api/brands/${brandId}/niche/detect`, { method: "POST" }),
+  generateGroupSuggestions: (brandId: string) =>
+    call<GroupSuggestion[]>("/api/group-suggestions/generate", {
+      method: "POST",
+      body: JSON.stringify({ brand_id: brandId }),
+    }),
+  listGroupSuggestions: (brandId: string) =>
+    call<GroupSuggestion[]>(`/api/group-suggestions?brand_id=${brandId}`),
+  updateGroupSuggestion: (id: string, status: GroupSuggestion["status"]) =>
+    call<GroupSuggestion>(`/api/group-suggestions/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify({ status }),
+    }),
+  queueGroupPost: (input: {
+    brand_id: string;
+    group_suggestion_id: string;
+    body: string;
+  }) =>
+    call<GroupPostTask>("/api/automation/group-queue", {
+      method: "POST",
+      body: JSON.stringify(input),
+    }),
+  listGroupQueue: (brandId: string) =>
+    call<GroupPostTask[]>(`/api/automation/group-queue?brand_id=${brandId}`),
 };
