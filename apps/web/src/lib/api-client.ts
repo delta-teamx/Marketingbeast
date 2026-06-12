@@ -1,8 +1,13 @@
 "use client";
 
 import type {
+  AdAccount,
+  AdCampaign,
+  AdCampaignDetail,
+  AdRecommendations,
   AuditReport,
   Brand,
+  CampaignStatus,
   Competitor,
   CompetitorComparison,
   Conversation,
@@ -91,6 +96,38 @@ export const api = {
     call<ContentItem>(`/api/content/${id}/approve`, { method: "POST" }),
   repurposeContent: (id: string) =>
     call<ContentItem[]>(`/api/content/${id}/repurpose`, { method: "POST" }),
+
+  // --- Ads ---
+  connectAdAccount: (brandId: string) =>
+    call<AdAccount>(`/api/brands/${brandId}/ad-accounts/connect-mock`, { method: "POST" }),
+  listAdAccounts: (brandId: string) =>
+    call<AdAccount[]>(`/api/brands/${brandId}/ad-accounts`),
+  createCampaign: (
+    brandId: string,
+    input: {
+      ad_account_id: string;
+      name: string;
+      objective: string;
+      daily_budget: number;
+      concept: string;
+      n_variations: number;
+    },
+  ) =>
+    call<AdCampaignDetail>(`/api/brands/${brandId}/campaigns`, {
+      method: "POST",
+      body: JSON.stringify(input),
+    }),
+  listCampaigns: (brandId: string) =>
+    call<AdCampaign[]>(`/api/brands/${brandId}/campaigns`),
+  syncCampaign: (id: string) =>
+    call<AdCampaignDetail>(`/api/campaigns/${id}/sync`, { method: "POST" }),
+  campaignRecommendations: (id: string) =>
+    call<AdRecommendations>(`/api/campaigns/${id}/recommendations`),
+  setCampaignStatus: (id: string, status: CampaignStatus) =>
+    call<AdCampaignDetail>(`/api/campaigns/${id}/status`, {
+      method: "PATCH",
+      body: JSON.stringify({ status }),
+    }),
 
   // --- Unified inbox ---
   syncInbox: (brandId: string) =>

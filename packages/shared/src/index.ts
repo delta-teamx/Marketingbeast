@@ -71,6 +71,56 @@ export interface ContentItem {
   targets: ContentTarget[];
 }
 
+// --- Ads ---
+
+export type CampaignStatus = "draft" | "active" | "paused";
+export type CreativeStatus = "active" | "paused";
+
+export interface AdAccount {
+  id: string;
+  brand_id: string;
+  external_id: string;
+  name: string | null;
+  status: string;
+}
+
+export interface AdMetrics {
+  impressions?: number;
+  clicks?: number;
+  spend?: number;
+  conversions?: number;
+  ctr?: number;
+}
+
+export interface AdCreative {
+  id: string;
+  variation_index: number;
+  headline: string;
+  primary_text: string;
+  status: CreativeStatus;
+  metrics_json: AdMetrics;
+}
+
+export interface AdCampaign {
+  id: string;
+  brand_id: string;
+  ad_account_id: string;
+  name: string;
+  objective: string;
+  status: CampaignStatus;
+  daily_budget: number;
+  metrics_json: AdMetrics;
+}
+
+export interface AdCampaignDetail extends AdCampaign {
+  creatives: AdCreative[];
+}
+
+export interface AdRecommendations {
+  recommendations: { creative_id: string; action: "scale" | "pause"; reason: string }[];
+  summary: string;
+}
+
 // --- Unified inbox ---
 
 export type ConversationType = "comment" | "dm";

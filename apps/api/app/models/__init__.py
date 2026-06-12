@@ -1,5 +1,12 @@
 """ORM models. Import all here so Alembic autogenerate sees them."""
 
+from app.models.ads import (
+    AdAccount,
+    AdCampaign,
+    AdCreative,
+    CampaignStatus,
+    CreativeStatus,
+)
 from app.models.analytics import Competitor, MetricSnapshot, Report, ReportPeriod
 from app.models.audit import AuditReport
 from app.models.brand import Brand
@@ -28,9 +35,14 @@ from app.models.organization import Organization
 from app.models.social_account import SocialAccount, SocialProvider
 
 __all__ = [
+    "AdAccount",
+    "AdCampaign",
+    "AdCreative",
     "AuditReport",
     "Brand",
+    "CampaignStatus",
     "Competitor",
+    "CreativeStatus",
     "Conversation",
     "ConversationStatus",
     "ConversationType",

@@ -113,6 +113,22 @@ creds, used by dev and the test suite) and `live` (the real Graph API).
 The web dashboard ties this together: create a brand, connect accounts, compose,
 schedule, and publish.
 
+## Ads Manager (Phase 6)
+
+Launch and optimize Meta ads from the dashboard (Marketing API, mock-first).
+
+- **Ads adapter** (`services/ads_client.py`): `mock` (default) / `live` modes,
+  mirroring the graph client.
+- **Connect:** `POST /api/brands/{id}/ad-accounts/connect-mock`.
+- **Launch:** `POST /api/brands/{id}/campaigns` creates a campaign and
+  **auto-generates 10–20 creative variations** (`services/ads.py`, LLM-driven;
+  deterministic in mock) — the proven "many variations → find winners" tactic.
+- **Optimize:** `POST /api/campaigns/{id}/sync` pulls per-creative metrics;
+  `GET /api/campaigns/{id}/recommendations` returns plain-language **pause/scale**
+  actions; `PATCH /api/campaigns/{id}/status` toggles active/paused.
+- Models `AdAccount`/`AdCampaign`/`AdCreative` (migration 0009). Web: an "Ads
+  manager" panel — connect, launch, sync, recommendations, creative breakdown.
+
 ## Engagement & Leads (Phase 5)
 
 A unified inbox for comments + DMs across FB/IG, with lead detection.
@@ -241,7 +257,7 @@ to start before Phase 1 — flag early.
 ## Roadmap
 
 Phase 0 Foundations ✅ → 1 Connect & Publish ✅ → 2 Flagship Audit ✅ →
-3 Content Engine ✅ → 4 Analytics & Reports ✅ → 5 Engagement & Leads ✅ → 6 Ads →
+3 Content Engine ✅ → 4 Analytics & Reports ✅ → 5 Engagement & Leads ✅ → 6 Ads ✅ →
 7 AI Video → 8 Agency / White-label → 9 Tier B Group Posting 🚧 → 10 Vertical tuning.
 
 Tier B (the user-operated, paced Facebook **group** posting extension) lives in
