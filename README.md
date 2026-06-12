@@ -113,6 +113,15 @@ creds, used by dev and the test suite) and `live` (the real Graph API).
 The web dashboard ties this together: create a brand, connect accounts, compose,
 schedule, and publish.
 
+## Marketing site & onboarding
+
+The web app's public `/` is a conversion-focused marketing site (hero + clear
+CTAs, features, how-it-works, who-it's-for, trust/compliance, pricing, final CTA)
+for small businesses and agencies running many FB/IG accounts. New signups flow
+into `/onboarding` — a questionnaire (goal, platforms, cadence, budget, audience,
+challenge) that creates the brand and an `OnboardingProfile` so the AI can tune
+strategy. Endpoint: `POST /api/onboarding` (migration 0006).
+
 ## Flagship audit (Phase 2)
 
 The hero feature: enter a brand's website and get a scored Presence audit plus a

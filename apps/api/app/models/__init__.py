@@ -16,6 +16,7 @@ from app.models.group import (
     SuggestionStatus,
 )
 from app.models.membership import Membership, OrgRole
+from app.models.onboarding import OnboardingProfile
 from app.models.organization import Organization
 from app.models.social_account import SocialAccount, SocialProvider
 
@@ -30,6 +31,7 @@ __all__ = [
     "GroupSuggestion",
     "GroupTaskStatus",
     "Membership",
+    "OnboardingProfile",
     "OrgRole",
     "Organization",
     "SocialAccount",

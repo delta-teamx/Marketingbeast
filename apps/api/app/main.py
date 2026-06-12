@@ -14,6 +14,7 @@ from app.api.routers import (
     groups,
     health,
     integrations_meta,
+    onboarding,
     organizations,
     social_accounts,
 )
@@ -49,6 +50,7 @@ def create_app() -> FastAPI:
     app.include_router(groups.router)
     app.include_router(automation.router)
     app.include_router(audit.router)
+    app.include_router(onboarding.router)
     return app
 
 

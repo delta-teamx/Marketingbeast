@@ -29,7 +29,8 @@ export function AuthForm({ mode }: { mode: Mode }) {
         setError(error.message);
         return;
       }
-      router.push("/dashboard");
+      // New users go through onboarding; returning users land on the dashboard.
+      router.push(isSignup ? "/onboarding" : "/dashboard");
     } finally {
       setLoading(false);
     }

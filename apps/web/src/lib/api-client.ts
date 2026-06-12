@@ -8,6 +8,8 @@ import type {
   GroupSuggestion,
   Me,
   NicheProfile,
+  OnboardingInput,
+  OnboardingResult,
   Organization,
   SocialAccount,
 } from "@presence/shared";
@@ -32,6 +34,12 @@ async function call<T>(path: string, init?: RequestInit): Promise<T> {
 
 export const api = {
   me: () => call<Me>("/api/auth/me"),
+  submitOnboarding: (input: OnboardingInput) =>
+    call<OnboardingResult>("/api/onboarding", {
+      method: "POST",
+      body: JSON.stringify(input),
+    }),
+  getOnboarding: () => call<OnboardingResult | null>("/api/onboarding"),
   listOrgs: () => call<Organization[]>("/api/organizations"),
   listBrands: (orgId: string) =>
     call<Brand[]>(`/api/brands?org_id=${orgId}`),

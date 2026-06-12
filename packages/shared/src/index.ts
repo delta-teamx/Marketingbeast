@@ -71,6 +71,34 @@ export interface ContentItem {
   targets: ContentTarget[];
 }
 
+// --- Onboarding ---
+
+export interface OnboardingInput {
+  business_name: string;
+  website_url?: string | null;
+  industry?: string | null;
+  goal?: string | null;
+  platforms: string[];
+  posting_frequency?: string | null;
+  monthly_budget?: string | null;
+  biggest_challenge?: string | null;
+  target_audience?: string | null;
+}
+
+export interface OnboardingResult {
+  brand: Brand;
+  profile: {
+    id: string;
+    brand_id: string;
+    goal: string | null;
+    platforms: string[] | null;
+    posting_frequency: string | null;
+    monthly_budget: string | null;
+    biggest_challenge: string | null;
+    target_audience: string | null;
+  };
+}
+
 // --- Flagship audit ---
 
 export interface AuditSection {
