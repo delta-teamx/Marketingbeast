@@ -27,6 +27,17 @@ class PublishResult:
     permalink: str | None = None
 
 
+@dataclass
+class InsightsData:
+    """A single day's insights for one account."""
+
+    followers: int
+    reach: int
+    impressions: int
+    engagement: int
+    posts: int
+
+
 class MetaError(Exception):
     """Raised on any Graph API failure."""
 
@@ -52,4 +63,15 @@ class MetaClient(Protocol):
         ig_user_id: str | None = None,
     ) -> PublishResult:
         """Publish a post/photo to a Page or IG account."""
+        ...
+
+    async def fetch_insights(
+        self,
+        *,
+        provider: SocialProvider,
+        external_id: str,
+        access_token: str,
+        day_offset: int = 0,
+    ) -> InsightsData:
+        """Return insights for a given day (0 = today, 1 = yesterday, …)."""
         ...

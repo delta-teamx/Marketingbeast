@@ -71,6 +71,61 @@ export interface ContentItem {
   targets: ContentTarget[];
 }
 
+// --- Analytics ---
+
+export interface DashboardData {
+  followers: number;
+  follower_growth: number;
+  total_reach: number;
+  total_engagement: number;
+  engagement_rate: number;
+  time_series: { date: string; followers: number; reach: number; engagement: number }[];
+  top_posts: { id: string; body: string; engagement: number }[];
+  per_account: {
+    social_account_id: string;
+    display_name: string | null;
+    provider: string | null;
+    followers: number;
+    reach: number;
+    engagement: number;
+  }[];
+}
+
+export type ReportPeriod = "weekly" | "monthly";
+
+export interface Report {
+  id: string;
+  brand_id: string;
+  period: ReportPeriod;
+  starts_on: string;
+  ends_on: string;
+  metrics_json: Record<string, number>;
+  summary: string;
+}
+
+export interface Competitor {
+  id: string;
+  brand_id: string;
+  name: string;
+  handle: string | null;
+  platform: string | null;
+  followers: number;
+  posting_frequency: string | null;
+  engagement_rate: number;
+}
+
+export interface CompetitorComparison {
+  you: { followers: number };
+  competitors: {
+    name: string;
+    followers: number;
+    follower_gap: number;
+    engagement_rate: number;
+    posting_frequency: string | null;
+  }[];
+  summary: string;
+}
+
 // --- Onboarding ---
 
 export interface OnboardingInput {

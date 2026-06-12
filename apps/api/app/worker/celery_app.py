@@ -32,5 +32,9 @@ celery_app.conf.update(
             "task": "presence.publish_due",
             "schedule": settings.publish_poll_seconds,
         },
+        "ingest-insights-daily": {
+            "task": "presence.ingest_insights",
+            "schedule": 24 * 60 * 60.0,  # once a day
+        },
     },
 )

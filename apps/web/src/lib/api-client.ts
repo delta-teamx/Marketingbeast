@@ -3,7 +3,10 @@
 import type {
   AuditReport,
   Brand,
+  Competitor,
+  CompetitorComparison,
   ContentItem,
+  DashboardData,
   GroupPostTask,
   GroupSuggestion,
   Me,
@@ -11,6 +14,8 @@ import type {
   OnboardingInput,
   OnboardingResult,
   Organization,
+  Report,
+  ReportPeriod,
   SocialAccount,
 } from "@presence/shared";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -84,6 +89,29 @@ export const api = {
     call<ContentItem>(`/api/content/${id}/approve`, { method: "POST" }),
   repurposeContent: (id: string) =>
     call<ContentItem[]>(`/api/content/${id}/repurpose`, { method: "POST" }),
+
+  // --- Analytics ---
+  syncInsights: (brandId: string) =>
+    call<DashboardData>(`/api/brands/${brandId}/insights/sync`, { method: "POST" }),
+  getAnalytics: (brandId: string) =>
+    call<DashboardData>(`/api/brands/${brandId}/analytics`),
+  generateReport: (brandId: string, period: ReportPeriod) =>
+    call<Report>(`/api/brands/${brandId}/reports/generate`, {
+      method: "POST",
+      body: JSON.stringify({ period }),
+    }),
+  listReports: (brandId: string) =>
+    call<Report[]>(`/api/brands/${brandId}/reports`),
+  addCompetitor: (
+    brandId: string,
+    input: { name: string; followers: number; engagement_rate: number },
+  ) =>
+    call<Competitor>(`/api/brands/${brandId}/competitors`, {
+      method: "POST",
+      body: JSON.stringify(input),
+    }),
+  compareCompetitors: (brandId: string) =>
+    call<CompetitorComparison>(`/api/brands/${brandId}/competitors/compare`),
 
   // --- Flagship audit ---
   runAudit: (brandId: string) =>

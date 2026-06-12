@@ -113,6 +113,21 @@ creds, used by dev and the test suite) and `live` (the real Graph API).
 The web dashboard ties this together: create a brand, connect accounts, compose,
 schedule, and publish.
 
+## Analytics & Reports (Phase 4)
+
+Insights flow through the Meta adapter (mock-first) into daily snapshots.
+
+- **Sync:** `POST /api/brands/{id}/insights/sync` ingests per-account insights
+  (`MetricSnapshot`); a Celery beat job (`presence.ingest_insights`) does it daily.
+- **Dashboard:** `GET /api/brands/{id}/analytics` — followers, growth, reach,
+  engagement rate, a time-series, top posts, and per-account breakdown (charted
+  with Recharts in the app).
+- **Reports:** `POST /api/brands/{id}/reports/generate` (weekly/monthly) with an
+  AI summary; `GET /api/reports/{id}/html` is a print-ready, white-label-able page.
+- **Competitor tracking:** add competitors and `GET …/competitors/compare` returns
+  follower gaps + an AI gap summary.
+- Models: `MetricSnapshot`, `Report`, `Competitor` (migration 0007).
+
 ## Marketing site & onboarding
 
 The web app's public `/` is a conversion-focused marketing site (hero + clear
@@ -211,7 +226,7 @@ to start before Phase 1 — flag early.
 ## Roadmap
 
 Phase 0 Foundations ✅ → 1 Connect & Publish ✅ → 2 Flagship Audit ✅ →
-3 Content Engine ✅ → 4 Analytics & Reports → 5 Engagement & Leads → 6 Ads →
+3 Content Engine ✅ → 4 Analytics & Reports ✅ → 5 Engagement & Leads → 6 Ads →
 7 AI Video → 8 Agency / White-label → 9 Tier B Group Posting 🚧 → 10 Vertical tuning.
 
 Tier B (the user-operated, paced Facebook **group** posting extension) lives in

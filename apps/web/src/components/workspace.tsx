@@ -10,6 +10,7 @@ import type {
   SocialAccount,
 } from "@presence/shared";
 import { api } from "@/lib/api-client";
+import { AnalyticsPanel } from "@/components/analytics-panel";
 
 export function Workspace() {
   const [orgId, setOrgId] = useState<string | null>(null);
@@ -136,6 +137,7 @@ export function Workspace() {
               })
             }
           />
+          <AnalyticsPanel brandId={brand.id} />
           <ContentList
             items={content}
             onPublish={(id) =>

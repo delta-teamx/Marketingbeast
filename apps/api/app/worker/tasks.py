@@ -43,3 +43,31 @@ def publish_due() -> list[str]:
     if published:
         logger.info("published %d due item(s): %s", len(published), published)
     return published
+
+
+async def _ingest_all_insights_async() -> int:
+    from sqlalchemy import select
+
+    from app.models.brand import Brand
+    from app.services.analytics import ingest_brand_insights
+
+    settings = get_settings()
+    engine = create_async_engine(settings.database_url, pool_pre_ping=True)
+    session_factory = async_sessionmaker(engine, expire_on_commit=False)
+    try:
+        async with session_factory() as session:
+            brands = (await session.scalars(select(Brand))).all()
+            total = 0
+            for brand in brands:
+                total += await ingest_brand_insights(session, brand, days=1)
+            return total
+    finally:
+        await engine.dispose()
+
+
+@celery_app.task(name="presence.ingest_insights")
+def ingest_insights() -> int:
+    """Daily insights ingestion for every brand (runs on a beat)."""
+    written = asyncio.run(_ingest_all_insights_async())
+    logger.info("ingested %d insight snapshot(s)", written)
+    return written

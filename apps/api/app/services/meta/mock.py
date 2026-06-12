@@ -5,7 +5,7 @@ from __future__ import annotations
 import uuid
 
 from app.models.social_account import SocialProvider
-from app.services.meta.base import ConnectedAccount, PublishResult
+from app.services.meta.base import ConnectedAccount, InsightsData, PublishResult
 
 
 class MockMetaClient:
@@ -48,4 +48,29 @@ class MockMetaClient:
         return PublishResult(
             external_post_id=post_id,
             permalink=f"https://mock.local/{external_id}/{post_id}",
+        )
+
+    async def fetch_insights(
+        self,
+        *,
+        provider: SocialProvider,
+        external_id: str,
+        access_token: str,
+        day_offset: int = 0,
+    ) -> InsightsData:
+        # Deterministic from the account id; followers trend gently upward so the
+        # most recent day (offset 0) is highest — charts show growth.
+        seed = sum(ord(c) for c in external_id)
+        base_followers = 800 + seed % 1200
+        followers = base_followers + (30 - day_offset) * (5 + seed % 7)
+        reach = 200 + (seed + day_offset * 13) % 900
+        impressions = reach + 150 + (seed % 400)
+        engagement = 20 + (seed + day_offset * 7) % 180
+        posts = (seed + day_offset) % 3
+        return InsightsData(
+            followers=followers,
+            reach=reach,
+            impressions=impressions,
+            engagement=engagement,
+            posts=posts,
         )
