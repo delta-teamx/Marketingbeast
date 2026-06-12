@@ -36,5 +36,9 @@ celery_app.conf.update(
             "task": "presence.ingest_insights",
             "schedule": 24 * 60 * 60.0,  # once a day
         },
+        "poll-media-renders": {
+            "task": "presence.poll_renders",
+            "schedule": 30.0,  # every 30s
+        },
     },
 )

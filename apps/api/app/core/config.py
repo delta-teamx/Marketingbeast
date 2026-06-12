@@ -63,6 +63,13 @@ class Settings(BaseSettings):
     # Frequency (seconds) of the Celery beat job that publishes due content.
     publish_poll_seconds: float = Field(default=60.0, alias="PUBLISH_POLL_SECONDS")
 
+    # AI media generation (video/reels). "mock" (default) or a provider name.
+    media_provider: str = Field(default="mock", alias="MEDIA_PROVIDER")
+    media_api_key: str = Field(default="", alias="MEDIA_API_KEY")
+    # Credits charged per generated video, and starter credits per new org.
+    video_cost_credits: int = Field(default=10, alias="VIDEO_COST_CREDITS")
+    starter_credits: int = Field(default=100, alias="STARTER_CREDITS")
+
     @property
     def cors_origins_list(self) -> list[str]:
         return [o.strip() for o in self.api_cors_origins.split(",") if o.strip()]

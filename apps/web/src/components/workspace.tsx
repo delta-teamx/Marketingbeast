@@ -13,6 +13,7 @@ import { api } from "@/lib/api-client";
 import { AnalyticsPanel } from "@/components/analytics-panel";
 import { InboxPanel } from "@/components/inbox-panel";
 import { AdsPanel } from "@/components/ads-panel";
+import { MediaPanel } from "@/components/media-panel";
 
 export function Workspace() {
   const [orgId, setOrgId] = useState<string | null>(null);
@@ -122,6 +123,7 @@ export function Workspace() {
               })
             }
           />
+          <MediaPanel brandId={brand.id} />
           <GenerateWeek
             onGenerate={(prompt) =>
               run(async () => {

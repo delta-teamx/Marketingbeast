@@ -9,6 +9,9 @@ import type {
   Brand,
   CampaignStatus,
   Competitor,
+  Credits,
+  MediaAsset,
+  MediaJob,
   CompetitorComparison,
   Conversation,
   ConversationDetail,
@@ -96,6 +99,26 @@ export const api = {
     call<ContentItem>(`/api/content/${id}/approve`, { method: "POST" }),
   repurposeContent: (id: string) =>
     call<ContentItem[]>(`/api/content/${id}/repurpose`, { method: "POST" }),
+
+  // --- AI media ---
+  getCredits: (brandId: string) =>
+    call<Credits>(`/api/brands/${brandId}/credits`),
+  topupCredits: (brandId: string, amount: number) =>
+    call<Credits>(`/api/brands/${brandId}/credits/topup`, {
+      method: "POST",
+      body: JSON.stringify({ amount }),
+    }),
+  generateVideo: (brandId: string, note: string, productUrl?: string) =>
+    call<MediaJob>(`/api/brands/${brandId}/videos/generate`, {
+      method: "POST",
+      body: JSON.stringify({ note, product_url: productUrl ?? null }),
+    }),
+  listMediaJobs: (brandId: string) =>
+    call<MediaJob[]>(`/api/brands/${brandId}/media-jobs`),
+  pollMediaJob: (id: string) =>
+    call<MediaJob>(`/api/media-jobs/${id}/poll`, { method: "POST" }),
+  listMediaAssets: (brandId: string) =>
+    call<MediaAsset[]>(`/api/brands/${brandId}/media-assets`),
 
   // --- Ads ---
   connectAdAccount: (brandId: string) =>

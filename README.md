@@ -113,6 +113,23 @@ creds, used by dev and the test suite) and `live` (the real Graph API).
 The web dashboard ties this together: create a brand, connect accounts, compose,
 schedule, and publish.
 
+## AI Video & Reels (Phase 7)
+
+Turn a note or product URL into a UGC-style reel, metered by credits.
+
+- **Provider adapter** (`services/media_provider.py`): one interface, swappable
+  providers via `MEDIA_PROVIDER` (`mock` default completes on first poll; stubs
+  for runway/creatify/heygen).
+- **Flow** (`services/media.py`): LLM writes a UGC-style script + storyboard →
+  provider renders async → poll → store a `MediaAsset`. `POST
+  /api/brands/{id}/videos/generate`, `POST /api/media-jobs/{id}/poll`; a Celery
+  beat job advances in-flight renders.
+- **Credits:** each render costs `VIDEO_COST_CREDITS` (10), deducted from the org
+  balance and recorded in a `CreditLedger`; `GET/POST .../credits[/topup]`.
+  Insufficient credits → HTTP 402. New orgs get `STARTER_CREDITS` (100).
+- Models `MediaJob`/`MediaAsset`/`CreditLedger` + org `credit_balance`
+  (migration 0010). Web: an "AI video & reels" panel with credits, generate, poll.
+
 ## Ads Manager (Phase 6)
 
 Launch and optimize Meta ads from the dashboard (Marketing API, mock-first).
@@ -258,7 +275,7 @@ to start before Phase 1 — flag early.
 
 Phase 0 Foundations ✅ → 1 Connect & Publish ✅ → 2 Flagship Audit ✅ →
 3 Content Engine ✅ → 4 Analytics & Reports ✅ → 5 Engagement & Leads ✅ → 6 Ads ✅ →
-7 AI Video → 8 Agency / White-label → 9 Tier B Group Posting 🚧 → 10 Vertical tuning.
+7 AI Video ✅ → 8 Agency / White-label → 9 Tier B Group Posting 🚧 → 10 Vertical tuning.
 
 Tier B (the user-operated, paced Facebook **group** posting extension) lives in
 [`apps/extension`](apps/extension/README.md) — assisted/confirmed, with hard-coded

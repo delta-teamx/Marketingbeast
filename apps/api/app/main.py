@@ -17,6 +17,7 @@ from app.api.routers import (
     health,
     inbox,
     integrations_meta,
+    media,
     onboarding,
     organizations,
     social_accounts,
@@ -57,6 +58,7 @@ def create_app() -> FastAPI:
     app.include_router(analytics.router)
     app.include_router(inbox.router)
     app.include_router(ads.router)
+    app.include_router(media.router)
     return app
 
 

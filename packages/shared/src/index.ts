@@ -71,6 +71,37 @@ export interface ContentItem {
   targets: ContentTarget[];
 }
 
+// --- AI media ---
+
+export type MediaJobStatus = "queued" | "rendering" | "ready" | "failed";
+
+export interface MediaJob {
+  id: string;
+  brand_id: string;
+  provider: string;
+  status: MediaJobStatus;
+  prompt: string;
+  script: string;
+  storyboard_json: { scene?: string; shot?: string }[];
+  asset_url: string | null;
+  cost_credits: number;
+  error: string | null;
+}
+
+export interface MediaAsset {
+  id: string;
+  brand_id: string;
+  kind: string;
+  url: string;
+  source: string;
+  provider: string | null;
+}
+
+export interface Credits {
+  org_id: string;
+  credit_balance: number;
+}
+
 // --- Ads ---
 
 export type CampaignStatus = "draft" | "active" | "paused";

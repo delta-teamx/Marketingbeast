@@ -37,7 +37,14 @@ async def ensure_personal_org(session: AsyncSession, user: AuthenticatedUser) ->
     base_slug = slugify(label) or "workspace"
     slug = f"{base_slug}-{user.id[:8]}"
 
-    org = Organization(name=label, slug=slug, is_personal=True)
+    from app.core.config import get_settings
+
+    org = Organization(
+        name=label,
+        slug=slug,
+        is_personal=True,
+        credit_balance=get_settings().starter_credits,
+    )
     session.add(org)
     await session.flush()
 

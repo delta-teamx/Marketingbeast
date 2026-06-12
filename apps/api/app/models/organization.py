@@ -5,7 +5,7 @@ from __future__ import annotations
 import uuid
 from typing import TYPE_CHECKING, Any
 
-from sqlalchemy import Boolean, String
+from sqlalchemy import Boolean, Integer, String
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -25,6 +25,8 @@ class Organization(Base, TimestampMixin):
     is_personal: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     # White-label settings for agency tier (Phase 8); nullable for now.
     white_label_json: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
+    # Credit balance for metered AI media generation (Phase 7).
+    credit_balance: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
 
     memberships: Mapped[list[Membership]] = relationship(
         back_populates="organization", cascade="all, delete-orphan"

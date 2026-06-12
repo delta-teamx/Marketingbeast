@@ -71,3 +71,25 @@ def ingest_insights() -> int:
     written = asyncio.run(_ingest_all_insights_async())
     logger.info("ingested %d insight snapshot(s)", written)
     return written
+
+
+async def _poll_renders_async() -> int:
+    from app.services.media import poll_rendering_jobs
+
+    settings = get_settings()
+    engine = create_async_engine(settings.database_url, pool_pre_ping=True)
+    session_factory = async_sessionmaker(engine, expire_on_commit=False)
+    try:
+        async with session_factory() as session:
+            return await poll_rendering_jobs(session)
+    finally:
+        await engine.dispose()
+
+
+@celery_app.task(name="presence.poll_renders")
+def poll_renders() -> int:
+    """Advance in-flight media render jobs (runs on a beat)."""
+    advanced = asyncio.run(_poll_renders_async())
+    if advanced:
+        logger.info("polled %d render job(s)", advanced)
+    return advanced
