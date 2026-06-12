@@ -10,8 +10,12 @@ import type {
   CampaignStatus,
   Competitor,
   Credits,
+  Invite,
+  Member,
   MediaAsset,
   MediaJob,
+  OrgSettings,
+  WhiteLabel,
   CompetitorComparison,
   Conversation,
   ConversationDetail,
@@ -56,6 +60,37 @@ export const api = {
     }),
   getOnboarding: () => call<OnboardingResult | null>("/api/onboarding"),
   listOrgs: () => call<Organization[]>("/api/organizations"),
+  createOrg: (name: string) =>
+    call<Organization>("/api/organizations", {
+      method: "POST",
+      body: JSON.stringify({ name }),
+    }),
+
+  // --- Agency / white-label ---
+  orgSettings: (orgId: string) =>
+    call<OrgSettings>(`/api/organizations/${orgId}/settings`),
+  changePlan: (orgId: string, plan: OrgSettings["plan"]) =>
+    call<OrgSettings>(`/api/organizations/${orgId}/plan`, {
+      method: "POST",
+      body: JSON.stringify({ plan }),
+    }),
+  updateWhiteLabel: (orgId: string, wl: WhiteLabel) =>
+    call<OrgSettings>(`/api/organizations/${orgId}/white-label`, {
+      method: "PUT",
+      body: JSON.stringify(wl),
+    }),
+  listMembers: (orgId: string) =>
+    call<Member[]>(`/api/organizations/${orgId}/members`),
+  createInvite: (orgId: string, email: string, role: Member["role"]) =>
+    call<Invite>(`/api/organizations/${orgId}/invites`, {
+      method: "POST",
+      body: JSON.stringify({ email, role }),
+    }),
+  listInvites: (orgId: string) =>
+    call<Invite[]>(`/api/organizations/${orgId}/invites`),
+  myInvites: () => call<Invite[]>("/api/invites"),
+  acceptInvite: (inviteId: string) =>
+    call<Member>(`/api/invites/${inviteId}/accept`, { method: "POST" }),
   listBrands: (orgId: string) =>
     call<Brand[]>(`/api/brands?org_id=${orgId}`),
   createBrand: (orgId: string, name: string) =>

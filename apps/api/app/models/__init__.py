@@ -29,6 +29,7 @@ from app.models.inbox import (
     ConversationType,
     Message,
 )
+from app.models.invite import InviteStatus, OrgInvite
 from app.models.media import CreditLedger, MediaAsset, MediaJob, MediaJobStatus
 from app.models.membership import Membership, OrgRole
 from app.models.onboarding import OnboardingProfile
@@ -48,11 +49,13 @@ __all__ = [
     "ConversationStatus",
     "ConversationType",
     "CreditLedger",
+    "InviteStatus",
     "MediaAsset",
     "MediaJob",
     "MediaJobStatus",
     "Message",
     "MetricSnapshot",
+    "OrgInvite",
     "Report",
     "ReportPeriod",
     "ContentItem",

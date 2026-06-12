@@ -12,7 +12,9 @@ from app.api.deps import get_current_user, get_db, require_org_role
 from app.core.security import AuthenticatedUser
 from app.models.brand import Brand
 from app.models.membership import OrgRole
+from app.models.organization import Organization
 from app.schemas.brand import BrandCreate, BrandOut
+from app.services.billing import ensure_can_add_brand
 
 router = APIRouter(prefix="/api/brands", tags=["brands"])
 
@@ -45,6 +47,9 @@ async def create_brand(
         user=user,
         allowed=(OrgRole.owner, OrgRole.admin),
     )
+    # Enforce the org's plan brand limit.
+    org = await session.get(Organization, payload.org_id)
+    await ensure_can_add_brand(session, org)
     brand = Brand(
         org_id=payload.org_id,
         name=payload.name,

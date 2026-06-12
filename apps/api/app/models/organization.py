@@ -27,6 +27,8 @@ class Organization(Base, TimestampMixin):
     white_label_json: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
     # Credit balance for metered AI media generation (Phase 7).
     credit_balance: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    # Billing tier (Phase 8): free | growth | agency. Drives per-brand/seat limits.
+    plan: Mapped[str] = mapped_column(String(20), default="free", nullable=False)
 
     memberships: Mapped[list[Membership]] = relationship(
         back_populates="organization", cascade="all, delete-orphan"

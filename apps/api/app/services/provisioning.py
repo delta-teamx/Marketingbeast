@@ -48,7 +48,9 @@ async def ensure_personal_org(session: AsyncSession, user: AuthenticatedUser) ->
     session.add(org)
     await session.flush()
 
-    session.add(Membership(org_id=org.id, user_id=user_uuid, role=OrgRole.owner))
+    session.add(
+        Membership(org_id=org.id, user_id=user_uuid, role=OrgRole.owner, email=user.email)
+    )
     await session.commit()
     await session.refresh(org)
     return org

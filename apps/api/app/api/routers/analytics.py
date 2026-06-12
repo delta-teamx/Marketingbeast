@@ -97,12 +97,28 @@ async def report_html(
     name = html.escape(brand.name)
     period = report.period.value
     window = f"{report.starts_on} → {report.ends_on}"
+
+    # White-label header from the agency org, if configured.
+    from app.models.organization import Organization
+
+    org = await session.get(Organization, brand.org_id)
+    wl = (org.white_label_json or {}) if org else {}
+    agency_name = html.escape(str(wl.get("brand_name", "")))
+    logo = html.escape(str(wl.get("logo_url", "")))
+    accent = html.escape(str(wl.get("primary_color", "#111")))
+    header = ""
+    if logo:
+        header += f'<img src="{logo}" alt="" style="height:36px">'
+    if agency_name:
+        header += f'<div class="muted">Prepared by {agency_name}</div>'
+
     body = f"""<!doctype html><html><head><meta charset="utf-8">
 <title>{name} — {period} report</title>
 <style>body{{font:14px/1.5 system-ui;max-width:680px;margin:40px auto;color:#111}}
-h1{{margin-bottom:0}}table{{width:100%;border-collapse:collapse;margin:16px 0}}
+h1{{margin-bottom:0;color:{accent}}}table{{width:100%;border-collapse:collapse;margin:16px 0}}
 td{{border-bottom:1px solid #eee;padding:8px}}.muted{{color:#666}}</style></head>
 <body>
+{header}
 <h1>{name}</h1>
 <div class="muted">{period.title()} report · {window}</div>
 <table>{rows}</table>

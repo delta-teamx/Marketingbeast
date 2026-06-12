@@ -113,6 +113,21 @@ creds, used by dev and the test suite) and `live` (the real Graph API).
 The web dashboard ties this together: create a brand, connect accounts, compose,
 schedule, and publish.
 
+## Agency / White-label (Phase 8)
+
+Manage many clients, with roles, billing tiers, and white-label branding.
+
+- **Team:** `GET /api/organizations/{id}/members`, role updates, and **email
+  invites** (`/invites` create/list, `/invites` for the invitee, `/accept`).
+  Last-owner is protected.
+- **Billing tiers** (`services/billing.py`): `free` / `growth` / `agency` gate
+  per-org **brand and seat limits** (enforced on brand create + invite accept →
+  HTTP 402); `POST /api/organizations/{id}/plan` upgrades (mock; Stripe later).
+- **White-label:** `PUT /api/organizations/{id}/white-label`
+  (agency name, logo, color, custom domain) — applied to the branded report HTML.
+- Models: org `plan`, membership `email`, `OrgInvite` (migration 0011). Web: an
+  "Agency & team" panel + a workspace switcher and pending-invite banner.
+
 ## AI Video & Reels (Phase 7)
 
 Turn a note or product URL into a UGC-style reel, metered by credits.
@@ -275,7 +290,7 @@ to start before Phase 1 — flag early.
 
 Phase 0 Foundations ✅ → 1 Connect & Publish ✅ → 2 Flagship Audit ✅ →
 3 Content Engine ✅ → 4 Analytics & Reports ✅ → 5 Engagement & Leads ✅ → 6 Ads ✅ →
-7 AI Video ✅ → 8 Agency / White-label → 9 Tier B Group Posting 🚧 → 10 Vertical tuning.
+7 AI Video ✅ → 8 Agency / White-label ✅ → 9 Tier B Group Posting 🚧 → 10 Vertical tuning.
 
 Tier B (the user-operated, paced Facebook **group** posting extension) lives in
 [`apps/extension`](apps/extension/README.md) — assisted/confirmed, with hard-coded

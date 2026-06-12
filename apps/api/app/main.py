@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.routers import (
     ads,
+    agency,
     analytics,
     audit,
     auth,
@@ -59,6 +60,7 @@ def create_app() -> FastAPI:
     app.include_router(inbox.router)
     app.include_router(ads.router)
     app.include_router(media.router)
+    app.include_router(agency.router)
     return app
 
 

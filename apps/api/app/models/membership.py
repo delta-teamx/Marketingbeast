@@ -11,7 +11,7 @@ import uuid
 from typing import TYPE_CHECKING
 
 from sqlalchemy import Enum as SAEnum
-from sqlalchemy import ForeignKey, UniqueConstraint
+from sqlalchemy import ForeignKey, String, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -40,5 +40,7 @@ class Membership(Base, TimestampMixin):
     role: Mapped[OrgRole] = mapped_column(
         SAEnum(OrgRole, name="org_role"), default=OrgRole.member, nullable=False
     )
+    # Cached email of the member (users live in Supabase auth.users).
+    email: Mapped[str | None] = mapped_column(String(320), nullable=True)
 
     organization: Mapped[Organization] = relationship(back_populates="memberships")

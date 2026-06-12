@@ -21,6 +21,39 @@ export interface Organization {
   is_personal: boolean;
 }
 
+// --- Agency / white-label ---
+
+export interface WhiteLabel {
+  brand_name?: string;
+  logo_url?: string;
+  primary_color?: string;
+  custom_domain?: string;
+}
+
+export interface OrgSettings {
+  id: string;
+  name: string;
+  plan: "free" | "growth" | "agency";
+  credit_balance: number;
+  white_label_json: WhiteLabel | null;
+}
+
+export interface Member {
+  id: string;
+  org_id: string;
+  user_id: string;
+  email: string | null;
+  role: OrgRole;
+}
+
+export interface Invite {
+  id: string;
+  org_id: string;
+  email: string;
+  role: OrgRole;
+  status: "pending" | "accepted" | "revoked";
+}
+
 export interface Brand {
   id: string;
   org_id: string;

@@ -7,6 +7,8 @@ import type {
   ContentItem,
   GroupPostTask,
   GroupSuggestion,
+  Invite,
+  Organization,
   SocialAccount,
 } from "@presence/shared";
 import { api } from "@/lib/api-client";
@@ -14,9 +16,12 @@ import { AnalyticsPanel } from "@/components/analytics-panel";
 import { InboxPanel } from "@/components/inbox-panel";
 import { AdsPanel } from "@/components/ads-panel";
 import { MediaPanel } from "@/components/media-panel";
+import { AgencyPanel } from "@/components/agency-panel";
 
 export function Workspace() {
+  const [orgs, setOrgs] = useState<Organization[]>([]);
   const [orgId, setOrgId] = useState<string | null>(null);
+  const [invites, setInvites] = useState<Invite[]>([]);
   const [brand, setBrand] = useState<Brand | null>(null);
   const [accounts, setAccounts] = useState<SocialAccount[]>([]);
   const [content, setContent] = useState<ContentItem[]>([]);
@@ -41,25 +46,38 @@ export function Workspace() {
     setAudit(report);
   }, []);
 
+  const selectOrgBrands = useCallback(
+    async (id: string) => {
+      const brands = await api.listBrands(id);
+      setBrand(brands[0] ?? null);
+      if (brands[0]) await refreshBrandData(brands[0].id);
+      else {
+        setAccounts([]);
+        setContent([]);
+        setGroups([]);
+        setGroupQueue([]);
+        setAudit(null);
+      }
+    },
+    [refreshBrandData],
+  );
+
   useEffect(() => {
     (async () => {
       try {
         await api.me(); // provision personal org
-        const orgs = await api.listOrgs();
-        const org = orgs[0];
-        setOrgId(org.id);
-        const brands = await api.listBrands(org.id);
-        if (brands[0]) {
-          setBrand(brands[0]);
-          await refreshBrandData(brands[0].id);
-        }
+        const [orgList, pending] = await Promise.all([api.listOrgs(), api.myInvites()]);
+        setOrgs(orgList);
+        setInvites(pending);
+        setOrgId(orgList[0].id);
+        await selectOrgBrands(orgList[0].id);
       } catch (e) {
         setError((e as Error).message);
       } finally {
         setLoading(false);
       }
     })();
-  }, [refreshBrandData]);
+  }, [selectOrgBrands]);
 
   async function run(fn: () => Promise<void>) {
     setError(null);
@@ -79,6 +97,73 @@ export function Workspace() {
           {error}
         </p>
       )}
+
+      <div className="flex flex-wrap items-center gap-3">
+        <label className="text-sm text-white/50">Workspace</label>
+        <select
+          value={orgId ?? ""}
+          onChange={(e) =>
+            run(async () => {
+              setOrgId(e.target.value);
+              await selectOrgBrands(e.target.value);
+            })
+          }
+          className="rounded-md border border-white/15 bg-transparent px-2 py-1 text-sm"
+        >
+          {orgs.map((o) => (
+            <option key={o.id} value={o.id} className="bg-[#0e0e16]">
+              {o.name}
+              {o.is_personal ? " (personal)" : ""}
+            </option>
+          ))}
+        </select>
+        <button
+          onClick={() =>
+            run(async () => {
+              const name = prompt("New agency workspace name");
+              if (!name) return;
+              const o = await api.createOrg(name);
+              setOrgs(await api.listOrgs());
+              setOrgId(o.id);
+              await selectOrgBrands(o.id);
+            })
+          }
+          className="btn-ghost rounded-md px-3 py-1 text-xs"
+        >
+          + New workspace
+        </button>
+      </div>
+
+      {invites.length > 0 && (
+        <div className="card flex flex-col gap-2 p-3 text-sm">
+          <span className="text-white/70">You have pending invitations:</span>
+          {invites.map((i) => (
+            <div key={i.id} className="flex items-center justify-between">
+              <span>
+                {i.email} · {i.role}
+              </span>
+              <button
+                onClick={() =>
+                  run(async () => {
+                    await api.acceptInvite(i.id);
+                    const [orgList, pending] = await Promise.all([
+                      api.listOrgs(),
+                      api.myInvites(),
+                    ]);
+                    setOrgs(orgList);
+                    setInvites(pending);
+                  })
+                }
+                className="btn-primary rounded-md px-3 py-1 text-xs font-medium"
+              >
+                Accept
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {orgId && <AgencyPanel orgId={orgId} />}
 
       {!brand ? (
         <CreateBrand
