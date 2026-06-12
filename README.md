@@ -113,6 +113,21 @@ creds, used by dev and the test suite) and `live` (the real Graph API).
 The web dashboard ties this together: create a brand, connect accounts, compose,
 schedule, and publish.
 
+## Engagement & Leads (Phase 5)
+
+A unified inbox for comments + DMs across FB/IG, with lead detection.
+
+- **Sync:** `POST /api/brands/{id}/inbox/sync` pulls conversations via the Meta
+  adapter (mock-first) into `Conversation` + `Message`, idempotently.
+- **Lead detection:** an intent scorer (keyword heuristic in mock; LLM few-shot
+  in live) flags buyer-intent conversations and scores them; `?leads_only=true`
+  surfaces just the leads.
+- **AI-drafted replies:** `POST /api/conversations/{id}/draft-reply` suggests a
+  reply; the user edits and confirms via `…/reply` (we never blast identical
+  auto-replies). Moderate with `…/hide`.
+- Models: `Conversation`, `Message` (migration 0008). Web: an "Inbox & leads"
+  panel with a conversation list, thread view, draft/send, and hide.
+
 ## Analytics & Reports (Phase 4)
 
 Insights flow through the Meta adapter (mock-first) into daily snapshots.
@@ -226,7 +241,7 @@ to start before Phase 1 — flag early.
 ## Roadmap
 
 Phase 0 Foundations ✅ → 1 Connect & Publish ✅ → 2 Flagship Audit ✅ →
-3 Content Engine ✅ → 4 Analytics & Reports ✅ → 5 Engagement & Leads → 6 Ads →
+3 Content Engine ✅ → 4 Analytics & Reports ✅ → 5 Engagement & Leads ✅ → 6 Ads →
 7 AI Video → 8 Agency / White-label → 9 Tier B Group Posting 🚧 → 10 Vertical tuning.
 
 Tier B (the user-operated, paced Facebook **group** posting extension) lives in

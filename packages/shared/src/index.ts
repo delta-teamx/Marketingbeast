@@ -71,6 +71,33 @@ export interface ContentItem {
   targets: ContentTarget[];
 }
 
+// --- Unified inbox ---
+
+export type ConversationType = "comment" | "dm";
+export type ConversationStatus = "open" | "replied" | "hidden";
+
+export interface InboxMessage {
+  id: string;
+  is_inbound: boolean;
+  text: string;
+  sent_at: string | null;
+}
+
+export interface Conversation {
+  id: string;
+  brand_id: string;
+  conv_type: ConversationType;
+  participant_name: string | null;
+  status: ConversationStatus;
+  is_lead: boolean;
+  lead_score: number;
+  last_message_at: string | null;
+}
+
+export interface ConversationDetail extends Conversation {
+  messages: InboxMessage[];
+}
+
 // --- Analytics ---
 
 export interface DashboardData {

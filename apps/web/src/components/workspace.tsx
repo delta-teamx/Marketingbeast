@@ -11,6 +11,7 @@ import type {
 } from "@presence/shared";
 import { api } from "@/lib/api-client";
 import { AnalyticsPanel } from "@/components/analytics-panel";
+import { InboxPanel } from "@/components/inbox-panel";
 
 export function Workspace() {
   const [orgId, setOrgId] = useState<string | null>(null);
@@ -138,6 +139,7 @@ export function Workspace() {
             }
           />
           <AnalyticsPanel brandId={brand.id} />
+          <InboxPanel brandId={brand.id} />
           <ContentList
             items={content}
             onPublish={(id) =>

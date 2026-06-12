@@ -5,7 +5,13 @@ from __future__ import annotations
 import uuid
 
 from app.models.social_account import SocialProvider
-from app.services.meta.base import ConnectedAccount, InsightsData, PublishResult
+from app.services.meta.base import (
+    ConnectedAccount,
+    ConversationData,
+    InsightsData,
+    MessageData,
+    PublishResult,
+)
 
 
 class MockMetaClient:
@@ -74,3 +80,40 @@ class MockMetaClient:
             engagement=engagement,
             posts=posts,
         )
+
+    async def fetch_conversations(
+        self,
+        *,
+        provider: SocialProvider,
+        external_id: str,
+        access_token: str,
+    ) -> list[ConversationData]:
+        # A deterministic mix of comments + DMs, including some buyer-intent leads.
+        pre = external_id[-4:] or "0000"
+        return [
+            ConversationData(
+                external_id=f"{pre}-c1",
+                conv_type="comment",
+                participant_name="Jordan P.",
+                messages=[
+                    MessageData(f"{pre}-c1-m1", "Love this! How much is it?", True, 35),
+                ],
+            ),
+            ConversationData(
+                external_id=f"{pre}-d1",
+                conv_type="dm",
+                participant_name="Sam R.",
+                messages=[
+                    MessageData(f"{pre}-d1-m1", "Hi! Do you have this in stock?", True, 90),
+                    MessageData(f"{pre}-d1-m2", "I'd like to buy 2 today", True, 80),
+                ],
+            ),
+            ConversationData(
+                external_id=f"{pre}-c2",
+                conv_type="comment",
+                participant_name="Alex T.",
+                messages=[
+                    MessageData(f"{pre}-c2-m1", "Nice photo 🔥", True, 200),
+                ],
+            ),
+        ]

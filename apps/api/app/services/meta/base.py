@@ -38,6 +38,22 @@ class InsightsData:
     posts: int
 
 
+@dataclass
+class MessageData:
+    external_id: str
+    text: str
+    is_inbound: bool
+    minutes_ago: int
+
+
+@dataclass
+class ConversationData:
+    external_id: str
+    conv_type: str  # "comment" | "dm"
+    participant_name: str
+    messages: list[MessageData] = field(default_factory=list)
+
+
 class MetaError(Exception):
     """Raised on any Graph API failure."""
 
@@ -74,4 +90,14 @@ class MetaClient(Protocol):
         day_offset: int = 0,
     ) -> InsightsData:
         """Return insights for a given day (0 = today, 1 = yesterday, …)."""
+        ...
+
+    async def fetch_conversations(
+        self,
+        *,
+        provider: SocialProvider,
+        external_id: str,
+        access_token: str,
+    ) -> list[ConversationData]:
+        """Return recent comments + DMs for an account (unified inbox)."""
         ...

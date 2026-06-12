@@ -14,6 +14,7 @@ from app.api.routers import (
     content,
     groups,
     health,
+    inbox,
     integrations_meta,
     onboarding,
     organizations,
@@ -53,6 +54,7 @@ def create_app() -> FastAPI:
     app.include_router(audit.router)
     app.include_router(onboarding.router)
     app.include_router(analytics.router)
+    app.include_router(inbox.router)
     return app
 
 

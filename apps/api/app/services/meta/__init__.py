@@ -7,7 +7,13 @@
 from __future__ import annotations
 
 from app.core.config import get_settings
-from app.services.meta.base import ConnectedAccount, InsightsData, MetaClient, PublishResult
+from app.services.meta.base import (
+    ConnectedAccount,
+    ConversationData,
+    InsightsData,
+    MetaClient,
+    PublishResult,
+)
 
 
 def get_meta_client() -> MetaClient:
@@ -23,6 +29,7 @@ def get_meta_client() -> MetaClient:
 
 __all__ = [
     "ConnectedAccount",
+    "ConversationData",
     "InsightsData",
     "MetaClient",
     "PublishResult",

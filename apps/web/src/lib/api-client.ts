@@ -5,6 +5,8 @@ import type {
   Brand,
   Competitor,
   CompetitorComparison,
+  Conversation,
+  ConversationDetail,
   ContentItem,
   DashboardData,
   GroupPostTask,
@@ -89,6 +91,23 @@ export const api = {
     call<ContentItem>(`/api/content/${id}/approve`, { method: "POST" }),
   repurposeContent: (id: string) =>
     call<ContentItem[]>(`/api/content/${id}/repurpose`, { method: "POST" }),
+
+  // --- Unified inbox ---
+  syncInbox: (brandId: string) =>
+    call<Conversation[]>(`/api/brands/${brandId}/inbox/sync`, { method: "POST" }),
+  listInbox: (brandId: string, leadsOnly = false) =>
+    call<Conversation[]>(`/api/brands/${brandId}/inbox?leads_only=${leadsOnly}`),
+  getConversation: (id: string) =>
+    call<ConversationDetail>(`/api/conversations/${id}`),
+  draftReply: (id: string) =>
+    call<{ text: string }>(`/api/conversations/${id}/draft-reply`, { method: "POST" }),
+  sendReply: (id: string, text: string) =>
+    call<ConversationDetail>(`/api/conversations/${id}/reply`, {
+      method: "POST",
+      body: JSON.stringify({ text }),
+    }),
+  hideConversation: (id: string) =>
+    call<ConversationDetail>(`/api/conversations/${id}/hide`, { method: "POST" }),
 
   // --- Analytics ---
   syncInsights: (brandId: string) =>

@@ -12,7 +12,13 @@ import httpx
 
 from app.core.config import get_settings
 from app.models.social_account import SocialProvider
-from app.services.meta.base import ConnectedAccount, InsightsData, MetaError, PublishResult
+from app.services.meta.base import (
+    ConnectedAccount,
+    ConversationData,
+    InsightsData,
+    MetaError,
+    PublishResult,
+)
 
 # Scopes requested at connect time (see README for App Review notes).
 OAUTH_SCOPES = [
@@ -168,6 +174,17 @@ class LiveMetaClient:
         # Real Graph insights wiring (page/IG insights metrics) lands with live
         # credentials + App Review. Returns zeros until then rather than crashing.
         return InsightsData(followers=0, reach=0, impressions=0, engagement=0, posts=0)
+
+    async def fetch_conversations(
+        self,
+        *,
+        provider: SocialProvider,
+        external_id: str,
+        access_token: str,
+    ) -> list[ConversationData]:
+        # Real comments + Messenger/IG conversations wiring lands with live
+        # credentials + App Review (pages_messaging / instagram_manage_messages).
+        return []
 
     @staticmethod
     def _raise_for_error(resp: httpx.Response) -> None:

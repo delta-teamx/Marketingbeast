@@ -16,6 +16,12 @@ from app.models.group import (
     GroupTaskStatus,
     SuggestionStatus,
 )
+from app.models.inbox import (
+    Conversation,
+    ConversationStatus,
+    ConversationType,
+    Message,
+)
 from app.models.membership import Membership, OrgRole
 from app.models.onboarding import OnboardingProfile
 from app.models.organization import Organization
@@ -25,6 +31,10 @@ __all__ = [
     "AuditReport",
     "Brand",
     "Competitor",
+    "Conversation",
+    "ConversationStatus",
+    "ConversationType",
+    "Message",
     "MetricSnapshot",
     "Report",
     "ReportPeriod",
