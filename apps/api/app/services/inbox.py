@@ -111,10 +111,13 @@ async def sync_inbox(
 
 
 async def load_conversation(session: AsyncSession, conv_id: uuid.UUID) -> Conversation | None:
+    # populate_existing refreshes an instance already in the identity map, so a
+    # reload after adding a reply returns the up-to-date messages collection.
     return await session.scalar(
         select(Conversation)
         .where(Conversation.id == conv_id)
         .options(selectinload(Conversation.messages))
+        .execution_options(populate_existing=True)
     )
 
 
