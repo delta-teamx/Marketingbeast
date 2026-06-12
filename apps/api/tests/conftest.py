@@ -56,6 +56,11 @@ async def db() -> AsyncGenerator[AsyncSession, None]:
     from app.db.base import Base
     from app.db.session import AsyncSessionLocal, engine
 
+    # pytest-asyncio gives each test a fresh event loop, but the app's async
+    # engine pools connections — a pooled asyncpg connection reused on a new loop
+    # raises MissingGreenlet. Dispose around each test so connections never cross
+    # event loops.
+    await engine.dispose()
     try:
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.drop_all)
@@ -68,6 +73,7 @@ async def db() -> AsyncGenerator[AsyncSession, None]:
 
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
+    await engine.dispose()
 
 
 @pytest.fixture
