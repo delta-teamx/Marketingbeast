@@ -81,8 +81,12 @@ async def sync_inbox(
                 )
                 session.add(conv)
                 await session.flush()
-
-            known = {m.external_id for m in conv.messages if m.external_id}
+                # New conversation — no existing messages. (Reading conv.messages
+                # on a freshly-flushed persistent object would lazy-load → async
+                # MissingGreenlet.) The found branch is eager-loaded below.
+                known: set[str | None] = set()
+            else:
+                known = {m.external_id for m in conv.messages if m.external_id}
             best_score = conv.lead_score
             for md in cd.messages:
                 sent_at = datetime.now(UTC) - timedelta(minutes=md.minutes_ago)
