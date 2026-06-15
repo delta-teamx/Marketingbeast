@@ -9,6 +9,18 @@ from pydantic import BaseModel, ConfigDict, Field
 from app.schemas.brand import BrandOut
 
 
+class ConversationalIn(BaseModel):
+    message: str = Field(min_length=3, max_length=2000)
+
+
+class ConversationalOut(BaseModel):
+    summary: str
+    industry: str
+    suggested_goal: str
+    suggested_cadence: str
+    content_pillars: list[str]
+
+
 class OnboardingIn(BaseModel):
     business_name: str = Field(min_length=1, max_length=200)
     website_url: str | None = Field(default=None, max_length=500)

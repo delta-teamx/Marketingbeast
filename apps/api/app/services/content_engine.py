@@ -22,6 +22,7 @@ from app.models.brand import Brand
 from app.models.content import ContentItem, ContentStatus, ContentType
 from app.services.llm import get_llm_provider
 from app.services.llm.base import Message
+from app.services.verticals import vertical_profile
 
 logger = get_logger(__name__)
 
@@ -93,10 +94,10 @@ async def generate_ideas(brand: Brand, prompt: str, count: int = 7) -> list[Gene
 def _mock_ideas(brand: Brand, prompt: str, count: int) -> list[GeneratedIdea]:
     kw = brand.niche_keywords or [(brand.industry_vertical or "business").lower()]
     days = list(BEST_TIMES.keys())
-    angles = [
-        "Tip", "Story", "Customer win", "Myth vs fact", "Offer", "Question", "Recap",
-    ]
-    vertical_tag = "#" + (brand.industry_vertical or "brand").lower().replace(" ", "")
+    profile = vertical_profile(brand.industry_vertical or " ".join(brand.niche_keywords or []))
+    angles = profile["angles"]
+    signature_tag = profile["hashtags"][0]
+    keyword_tag = "#" + (kw[0] if kw else "brand").replace(" ", "")
     ideas: list[GeneratedIdea] = []
     for i in range(count):
         angle = angles[i % len(angles)]
@@ -105,7 +106,7 @@ def _mock_ideas(brand: Brand, prompt: str, count: int) -> list[GeneratedIdea]:
             GeneratedIdea(
                 body=f"{angle}: {prompt.strip() or brand.name} — {kw[i % len(kw)]} edition.",
                 content_type=ContentType.post,
-                hashtags=[f"#{kw[0]}", vertical_tag],
+                hashtags=[signature_tag, keyword_tag],
                 suggested_time=BEST_TIMES[day][0],
             )
         )

@@ -53,6 +53,11 @@ async function call<T>(path: string, init?: RequestInit): Promise<T> {
 
 export const api = {
   me: () => call<Me>("/api/auth/me"),
+  conversationalOnboarding: (message: string) =>
+    call<import("@presence/shared").ConversationalStrategy>(
+      "/api/onboarding/conversational",
+      { method: "POST", body: JSON.stringify({ message }) },
+    ),
   submitOnboarding: (input: OnboardingInput) =>
     call<OnboardingResult>("/api/onboarding", {
       method: "POST",

@@ -39,6 +39,24 @@ export function OnboardingForm() {
   });
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [pitch, setPitch] = useState("");
+  const [strategy, setStrategy] = useState<string | null>(null);
+  const [drafting, setDrafting] = useState(false);
+
+  async function draftStrategy() {
+    if (!pitch) return;
+    setError(null);
+    setDrafting(true);
+    try {
+      const s = await api.conversationalOnboarding(pitch);
+      setStrategy(s.summary);
+      setForm((f) => ({ ...f, industry: s.industry, goal: s.suggested_goal }));
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setDrafting(false);
+    }
+  }
 
   function set<K extends keyof OnboardingInput>(key: K, value: OnboardingInput[K]) {
     setForm((f) => ({ ...f, [key]: value }));
@@ -75,6 +93,28 @@ export function OnboardingForm() {
         <p className="mt-2 text-sm text-white/60">
           A minute now lets Presence tailor your audit, voice and content.
         </p>
+      </div>
+
+      <div className="card flex flex-col gap-2 p-4">
+        <label className="text-sm text-white/70">
+          Describe your business in a sentence
+        </label>
+        <textarea
+          value={pitch}
+          onChange={(e) => setPitch(e.target.value)}
+          rows={2}
+          placeholder="e.g. I run a CrossFit gym and want more local members"
+          className="rounded-lg border border-white/15 bg-transparent px-3 py-2 text-sm"
+        />
+        <button
+          type="button"
+          disabled={drafting || !pitch}
+          onClick={draftStrategy}
+          className="btn-ghost w-fit rounded-lg px-3 py-1.5 text-sm disabled:opacity-50"
+        >
+          {drafting ? "Thinking…" : "✨ Draft my strategy"}
+        </button>
+        {strategy && <p className="text-sm text-white/70">{strategy}</p>}
       </div>
 
       <form onSubmit={onSubmit} className="flex flex-col gap-4">

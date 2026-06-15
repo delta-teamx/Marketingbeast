@@ -281,6 +281,14 @@ export interface OnboardingInput {
   target_audience?: string | null;
 }
 
+export interface ConversationalStrategy {
+  summary: string;
+  industry: string;
+  suggested_goal: string;
+  suggested_cadence: string;
+  content_pillars: string[];
+}
+
 export interface OnboardingResult {
   brand: Brand;
   profile: {

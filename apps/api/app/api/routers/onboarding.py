@@ -14,10 +14,38 @@ from app.api.deps import get_current_user, get_db
 from app.core.security import AuthenticatedUser
 from app.models.brand import Brand
 from app.models.onboarding import OnboardingProfile
-from app.schemas.onboarding import OnboardingIn, OnboardingOut
+from app.schemas.onboarding import (
+    ConversationalIn,
+    ConversationalOut,
+    OnboardingIn,
+    OnboardingOut,
+)
 from app.services.provisioning import ensure_personal_org
+from app.services.verticals import vertical_profile
 
 router = APIRouter(prefix="/api/onboarding", tags=["onboarding"])
+
+
+@router.post("/conversational", response_model=ConversationalOut)
+async def conversational_onboarding(
+    payload: ConversationalIn,
+    user: AuthenticatedUser = Depends(get_current_user),
+) -> ConversationalOut:
+    """"Tell me about your business" → a tuned starter strategy (Phase 10)."""
+    profile = vertical_profile(payload.message)
+    pillars = profile["angles"][:4]
+    summary = (
+        f"Sounds like a {profile['label']} business. We'll use a "
+        f"{profile['voice']} voice for {profile['audience']}, posting ~4–5x/week "
+        f"around {', '.join(p.lower() for p in pillars)}."
+    )
+    return ConversationalOut(
+        summary=summary,
+        industry=profile["label"],
+        suggested_goal="more_leads",
+        suggested_cadence="4–5 posts per week",
+        content_pillars=pillars,
+    )
 
 
 @router.post("", response_model=OnboardingOut, status_code=201)

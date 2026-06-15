@@ -33,3 +33,18 @@ async def test_onboarding_creates_brand_and_profile(
     brand_id = data["brand"]["id"]
     latest = await client.get("/api/onboarding", headers=auth_headers)
     assert latest.json()["brand"]["id"] == brand_id
+
+
+async def test_conversational_onboarding(
+    client: AsyncClient, auth_headers: dict[str, str]
+) -> None:
+    resp = await client.post(
+        "/api/onboarding/conversational",
+        headers=auth_headers,
+        json={"message": "I run a CrossFit gym and want more local members"},
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["industry"] == "Gym & Fitness"
+    assert len(body["content_pillars"]) == 4
+    assert body["summary"]

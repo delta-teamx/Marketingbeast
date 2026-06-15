@@ -191,6 +191,17 @@ Insights flow through the Meta adapter (mock-first) into daily snapshots.
   follower gaps + an AI gap summary.
 - Models: `MetricSnapshot`, `Report`, `Competitor` (migration 0007).
 
+## Vertical tuning & conversational onboarding (Phase 10)
+
+- **Per-industry tuning** (`services/verticals.py`): `resolve_vertical` maps a
+  brand's industry/description to a vertical (auto, gym, restaurant, real estate,
+  or default), each with a tuned voice, content angles, hashtags, audience, and
+  offers. Wired into the content engine and the audit's brief + plan.
+- **Conversational onboarding:** `POST /api/onboarding/conversational` turns
+  "tell me about your business" into a tuned starter strategy (industry, goal,
+  cadence, content pillars). The onboarding form's "Draft my strategy" box calls
+  it and pre-fills the questionnaire.
+
 ## Marketing site & onboarding
 
 The web app's public `/` is a conversion-focused marketing site (hero + clear
@@ -290,7 +301,11 @@ to start before Phase 1 — flag early.
 
 Phase 0 Foundations ✅ → 1 Connect & Publish ✅ → 2 Flagship Audit ✅ →
 3 Content Engine ✅ → 4 Analytics & Reports ✅ → 5 Engagement & Leads ✅ → 6 Ads ✅ →
-7 AI Video ✅ → 8 Agency / White-label ✅ → 9 Tier B Group Posting 🚧 → 10 Vertical tuning.
+7 AI Video ✅ → 8 Agency / White-label ✅ → 9 Tier B Group Posting 🚧 → 10 Vertical tuning ✅.
+
+**All Tier-A build phases (0–8, 10) are complete**; Phase 9 (Tier B group posting)
+ships as the `apps/extension` browser package. Remaining work is go-live:
+real Claude/Meta keys, Meta App Review, Stripe billing, and deployment.
 
 Tier B (the user-operated, paced Facebook **group** posting extension) lives in
 [`apps/extension`](apps/extension/README.md) — assisted/confirmed, with hard-coded

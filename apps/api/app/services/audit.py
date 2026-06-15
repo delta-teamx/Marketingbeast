@@ -26,6 +26,7 @@ from app.models.social_account import SocialAccount
 from app.services.group_finder import detect_niche
 from app.services.llm import get_llm_provider
 from app.services.llm.base import Message
+from app.services.verticals import vertical_profile
 from app.services.website import fetch_site_text
 
 logger = get_logger(__name__)
@@ -191,27 +192,22 @@ def _mock_brief_and_plan(
     brand_name: str, niche_category: str, keywords: list[str]
 ) -> tuple[str, list[dict[str, Any]]]:
     kw = keywords or [niche_category.lower()]
+    profile = vertical_profile(niche_category + " " + " ".join(keywords))
+    signature_tag = profile["hashtags"][0]
+    offers = profile["offers"]
     brief = (
-        f"{brand_name} should establish a consistent, helpful voice in the "
-        f"{niche_category.lower()} space — mixing education, social proof, and soft "
-        f"offers. Post 4–5x/week, lead with hooks, and lean on UGC-style visuals."
+        f"{brand_name} should sound {profile['voice']} for {profile['audience']} in the "
+        f"{niche_category.lower()} space — mixing education, social proof, and soft offers "
+        f"(e.g. {offers[0]}). Post 4–5x/week, lead with hooks, and lean on UGC-style visuals."
     )
     days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
-    ideas = [
-        ("Tip of the day", f"A quick {niche_category.lower()} tip your customers will love."),
-        ("Behind the scenes", f"Show how {brand_name} works day-to-day."),
-        ("Customer spotlight", "Share a happy-customer story or review."),
-        ("Myth vs fact", f"Bust a common {kw[0]} myth."),
-        ("Offer", f"A limited-time {niche_category.lower()} offer with a clear CTA."),
-        ("Question", "Ask your audience a question to spark comments."),
-        ("Recap", "Round up the week's best content."),
-    ]
+    angles = profile["angles"]
     plan = [
         {
             "day": days[i],
-            "idea": ideas[i][0],
-            "caption": ideas[i][1],
-            "hashtags": [f"#{kw[0]}", f"#{niche_category.lower().replace(' ', '')}"],
+            "idea": angles[i % len(angles)],
+            "caption": f"{angles[i % len(angles)]} — {brand_name} ({niche_category}).",
+            "hashtags": [signature_tag, f"#{kw[0].replace(' ', '')}"],
         }
         for i in range(7)
     ]
