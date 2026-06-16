@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { Reveal } from "@/components/ui/reveal";
+import { FeatureIcon, type IconName } from "@/components/marketing/icons";
 import {
   AdsVisual,
   AnalyticsVisual,
@@ -132,6 +133,7 @@ function Stats() {
 
 function FeatureRow({
   eyebrow,
+  icon,
   title,
   body,
   bullets,
@@ -139,6 +141,7 @@ function FeatureRow({
   reverse,
 }: {
   eyebrow: string;
+  icon: IconName;
   title: string;
   body: string;
   bullets: string[];
@@ -148,7 +151,8 @@ function FeatureRow({
   return (
     <div className="mx-auto grid max-w-6xl items-center gap-10 px-6 py-14 lg:grid-cols-2">
       <Reveal className={reverse ? "lg:order-2" : ""}>
-        <div className="gradient-text text-sm font-semibold uppercase tracking-wider">
+        <FeatureIcon name={icon} />
+        <div className="mt-4 gradient-text text-sm font-semibold uppercase tracking-wider">
           {eyebrow}
         </div>
         <h3 className="mt-2 text-3xl font-bold">{title}</h3>
@@ -183,6 +187,7 @@ function Features() {
 
       <FeatureRow
         eyebrow="Presence Audit"
+        icon="audit"
         title="Audit any business in minutes"
         body="Drop a website URL and get a scored report — profile, consistency, content quality, and gaps vs. your category — plus a ready-to-run first week of content."
         bullets={["Letter-grade score", "Action plan & strategy brief", "Seeds your content calendar"]}
@@ -191,6 +196,7 @@ function Features() {
       <FeatureRow
         reverse
         eyebrow="Publish & schedule"
+        icon="publish"
         title="Manage your pages from one portal"
         body="Connect Facebook Pages and Instagram via the official API, design posts, and publish or schedule them on a visual calendar — never log into Meta again."
         bullets={["Drag-and-drop calendar", "Auto-publish via Graph API", "Approve once, runs itself"]}
@@ -198,6 +204,7 @@ function Features() {
       />
       <FeatureRow
         eyebrow="AI video & reels"
+        icon="video"
         title="Turn an idea into a video — and post it"
         body="Describe a product or drop a link; Presence writes the script, renders a UGC-style reel, and publishes it straight to Facebook, Instagram, and even your groups."
         bullets={["Script → storyboard → render", "UGC-style that converts", "Publish to FB / IG / Groups"]}
@@ -206,6 +213,7 @@ function Features() {
       <FeatureRow
         reverse
         eyebrow="Meta Ads Manager"
+        icon="ads"
         title="Run your ads — and find the winners"
         body="Launch campaigns from your dashboard with 10–20 auto-generated creatives, then let the AI tell you in plain language which to pause and which to scale."
         bullets={["Campaigns without the Ads Manager maze", "10–20 creative variations", "Pause/scale recommendations"]}
@@ -213,6 +221,7 @@ function Features() {
       />
       <FeatureRow
         eyebrow="Analytics & reports"
+        icon="analytics"
         title="See everything in one dashboard"
         body="Reach, engagement, follower growth and your top posts — with automated weekly and monthly branded reports you (or your agency) can white-label."
         bullets={["Live cross-account dashboard", "Branded weekly / monthly PDFs", "Competitor tracking"]}
@@ -221,6 +230,7 @@ function Features() {
       <FeatureRow
         reverse
         eyebrow="AI group matcher"
+        icon="groups"
         title="Find high-intent groups in your niche"
         body="Our AI reads your niche and suggests the Facebook groups most likely to bring leads — with a relevance score and a paced, account-safe way to post."
         bullets={["Niche-matched group suggestions", "Buyer-intent ranking", "Account-safe, you stay in control"]}
@@ -228,6 +238,7 @@ function Features() {
       />
       <FeatureRow
         eyebrow="Inbox & leads"
+        icon="inbox"
         title="Never miss a buyer again"
         body="Comments and DMs from Facebook and Instagram land in one inbox; the AI flags real buyers, scores them, and drafts replies for you to send."
         bullets={["Unified comments + DMs", "Automatic lead detection", "AI-drafted, you-confirmed replies"]}
@@ -460,6 +471,69 @@ function FooterCol({ title, links }: { title: string; links: [string, string][] 
   );
 }
 
+const TESTIMONIALS = [
+  ["“We went from posting twice a month to every day — without hiring anyone. The audit alone paid for itself.”", "Maria L.", "Coffee shop owner"],
+  ["“I manage 14 client pages in Presence. White-label reports and one inbox saved my agency ~20 hours a week.”", "Devon R.", "Agency founder"],
+  ["“The ad creative variations found a winner we’d never have written. CPL dropped by a third.”", "Sam T.", "Auto dealer"],
+];
+
+function Testimonials() {
+  return (
+    <section className="border-y border-white/5 bg-white/[0.02]">
+      <div className="mx-auto max-w-6xl px-6 py-20">
+        <Reveal>
+          <h2 className="text-4xl font-bold">Loved by owners and agencies</h2>
+        </Reveal>
+        <div className="mt-12 grid gap-6 md:grid-cols-3">
+          {TESTIMONIALS.map(([quote, name, role], i) => (
+            <Reveal key={name} delay={i * 0.08}>
+              <figure className="card flex h-full flex-col justify-between p-6">
+                <blockquote className="text-sm text-white/80">{quote}</blockquote>
+                <figcaption className="mt-5 flex items-center gap-3">
+                  <span className="grid h-9 w-9 place-items-center rounded-full bg-gradient-to-br from-[#6d5efc] to-[#22d3ee] text-sm font-semibold">
+                    {name[0]}
+                  </span>
+                  <span className="text-sm">
+                    <span className="font-medium">{name}</span>
+                    <span className="block text-white/40">{role}</span>
+                  </span>
+                </figcaption>
+              </figure>
+            </Reveal>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+const FAQS = [
+  ["Do I need my own Facebook API key?", "No. You click “Connect Facebook” and authorize Presence — we handle the official Meta API. You never paste a key."],
+  ["How fast can I get started?", "Enter your URL and you’ll have a scored audit and a first week of content in minutes. Connect your accounts to go fully hands-off."],
+  ["Can agencies white-label it?", "Yes — your logo, colors, custom domain, and branded reports, with roles and client approvals."],
+  ["Is the group posting safe?", "It runs in your own browser with built-in human-pacing safeguards, and you confirm each post. It’s optional and used at your own risk."],
+];
+
+function FAQ() {
+  return (
+    <section className="mx-auto max-w-3xl px-6 py-20">
+      <Reveal>
+        <h2 className="text-4xl font-bold">Frequently asked</h2>
+      </Reveal>
+      <div className="mt-10 flex flex-col gap-4">
+        {FAQS.map(([q, a], i) => (
+          <Reveal key={q} delay={i * 0.05}>
+            <div className="card p-5">
+              <div className="font-medium">{q}</div>
+              <p className="mt-2 text-sm text-white/60">{a}</p>
+            </div>
+          </Reveal>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 export function Landing() {
   return (
     <div className="min-h-screen">
@@ -469,8 +543,10 @@ export function Landing() {
       <Features />
       <HowItWorks />
       <WhoFor />
+      <Testimonials />
       <Trust />
       <Pricing />
+      <FAQ />
       <FinalCta />
       <Footer />
     </div>
