@@ -74,3 +74,47 @@ h3,
   background-size: 44px 44px;
   mask-image: radial-gradient(60% 60% at 50% 30%, #000 0%, transparent 80%);
 }
+
+@keyframes floaty {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+.animate-float { animation: floaty 6s ease-in-out infinite; }
+
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+.animate-marquee { animation: marquee 28s linear infinite; }
+
+@keyframes shimmer {
+  100% { transform: translateX(100%); }
+}
+.shimmer { position: relative; overflow: hidden; }
+.shimmer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.08), transparent);
+  animation: shimmer 2.5s infinite;
+}
+
+@keyframes growbar {
+  from { height: 0; }
+}
+.bar { animation: growbar 0.9s cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+@keyframes pulsering {
+  0% { box-shadow: 0 0 0 0 rgba(109, 94, 252, 0.5); }
+  70% { box-shadow: 0 0 0 14px rgba(109, 94, 252, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(109, 94, 252, 0); }
+}
+.pulse-ring { animation: pulsering 2.4s infinite; }
+
+.glass {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border);
+  backdrop-filter: blur(10px);
+  border-radius: 16px;
+}

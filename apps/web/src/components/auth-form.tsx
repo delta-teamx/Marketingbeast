@@ -36,11 +36,21 @@ export function AuthForm({ mode }: { mode: Mode }) {
     }
   }
 
+  const field =
+    "rounded-lg border border-white/15 bg-white/[0.03] px-3 py-2.5 outline-none focus:border-[#6d5efc] transition";
+
   return (
-    <main className="mx-auto flex min-h-screen max-w-sm flex-col justify-center gap-6 px-6">
-      <h1 className="text-2xl font-semibold">
-        {isSignup ? "Create your account" : "Welcome back"}
-      </h1>
+    <div className="flex w-full max-w-sm flex-col gap-6">
+      <div>
+        <h1 className="text-2xl font-semibold">
+          {isSignup ? "Create your account" : "Welcome back"}
+        </h1>
+        <p className="mt-1 text-sm text-white/50">
+          {isSignup
+            ? "Audit your business and start running your social media."
+            : "Sign in to your Presence workspace."}
+        </p>
+      </div>
       <form onSubmit={onSubmit} className="flex flex-col gap-4">
         <label className="flex flex-col gap-1 text-sm">
           Email
@@ -50,7 +60,7 @@ export function AuthForm({ mode }: { mode: Mode }) {
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="rounded-md border border-white/15 bg-transparent px-3 py-2"
+            className={field}
           />
         </label>
         <label className="flex flex-col gap-1 text-sm">
@@ -62,14 +72,14 @@ export function AuthForm({ mode }: { mode: Mode }) {
             minLength={6}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="rounded-md border border-white/15 bg-transparent px-3 py-2"
+            className={field}
           />
         </label>
         {error && <p className="text-sm text-red-400">{error}</p>}
         <button
           type="submit"
           disabled={loading}
-          className="rounded-md bg-white px-4 py-2 font-medium text-black disabled:opacity-50"
+          className="btn-primary rounded-lg px-4 py-2.5 font-semibold disabled:opacity-50"
         >
           {loading ? "…" : isSignup ? "Sign up" : "Sign in"}
         </button>
@@ -91,6 +101,6 @@ export function AuthForm({ mode }: { mode: Mode }) {
           </>
         )}
       </p>
-    </main>
+    </div>
   );
 }
