@@ -434,7 +434,7 @@ export function Footer() {
           </div>
           <p className="mt-3 text-sm text-white/40">Your AI marketing employee for Facebook &amp; Instagram.</p>
         </div>
-        <FooterCol title="Product" links={[["Features", "/features"], ["Pricing", "/pricing"], ["Sign in", "/login"], ["Get started", "/signup"]]} />
+        <FooterCol title="Product" links={[["Features", "/features"], ["Pricing", "/pricing"], ["Sign in", "/login"], ["Sign up", "/signup"]]} />
         <FooterCol title="Legal" links={[["Privacy", "/privacy"], ["Terms", "/terms"], ["Data deletion", "/data-deletion"]]} />
         <FooterCol title="Company" links={[["How it works", "/#how"], ["Audit my business", "/signup"]]} />
       </div>
