@@ -30,6 +30,7 @@ export function Workspace() {
   const [audit, setAudit] = useState<AuditReport | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [tab, setTab] = useState<TabKey>("overview");
 
   const refreshBrandData = useCallback(async (brandId: string) => {
     const [accts, items, sugg, queue, report] = await Promise.all([
@@ -88,35 +89,44 @@ export function Workspace() {
     }
   }
 
-  if (loading) return <p className="text-white/60">Loading workspace…</p>;
+  if (loading) {
+    return (
+      <div className="flex items-center gap-3 text-white/60">
+        <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/20 border-t-white/70" />
+        Loading workspace…
+      </div>
+    );
+  }
 
   return (
-    <div className="flex flex-col gap-8">
-      {error && (
-        <p className="rounded-md border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-300">
-          {error}
-        </p>
-      )}
-
-      <div className="flex flex-wrap items-center gap-3">
-        <label className="text-sm text-white/50">Workspace</label>
-        <select
-          value={orgId ?? ""}
-          onChange={(e) =>
-            run(async () => {
-              setOrgId(e.target.value);
-              await selectOrgBrands(e.target.value);
-            })
-          }
-          className="rounded-md border border-white/15 bg-transparent px-2 py-1 text-sm"
-        >
-          {orgs.map((o) => (
-            <option key={o.id} value={o.id} className="bg-[#0e0e16]">
-              {o.name}
-              {o.is_personal ? " (personal)" : ""}
-            </option>
-          ))}
-        </select>
+    <div className="flex flex-col gap-6">
+      {/* Workspace bar */}
+      <div className="glass flex flex-wrap items-center justify-between gap-3 p-3">
+        <div className="flex items-center gap-2">
+          <span className="text-xs uppercase tracking-wider text-white/40">Workspace</span>
+          <select
+            value={orgId ?? ""}
+            onChange={(e) =>
+              run(async () => {
+                setOrgId(e.target.value);
+                await selectOrgBrands(e.target.value);
+              })
+            }
+            className="rounded-lg border border-white/15 bg-transparent px-3 py-1.5 text-sm"
+          >
+            {orgs.map((o) => (
+              <option key={o.id} value={o.id} className="bg-[#0e0e16]">
+                {o.name}
+                {o.is_personal ? " (personal)" : ""}
+              </option>
+            ))}
+          </select>
+          {brand && (
+            <span className="rounded-full bg-white/5 px-3 py-1 text-sm text-white/70">
+              {brand.name}
+            </span>
+          )}
+        </div>
         <button
           onClick={() =>
             run(async () => {
@@ -128,11 +138,17 @@ export function Workspace() {
               await selectOrgBrands(o.id);
             })
           }
-          className="btn-ghost rounded-md px-3 py-1 text-xs"
+          className="btn-ghost rounded-lg px-3 py-1.5 text-xs"
         >
           + New workspace
         </button>
       </div>
+
+      {error && (
+        <p className="rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-300">
+          {error}
+        </p>
+      )}
 
       {invites.length > 0 && (
         <div className="card flex flex-col gap-2 p-3 text-sm">
@@ -163,8 +179,6 @@ export function Workspace() {
         </div>
       )}
 
-      {orgId && <AgencyPanel orgId={orgId} />}
-
       {!brand ? (
         <CreateBrand
           onCreate={(name) =>
@@ -178,109 +192,114 @@ export function Workspace() {
         />
       ) : (
         <>
-          <AuditPanel
-            report={audit}
-            onRun={() =>
-              run(async () => {
-                await api.runAudit(brand.id);
-                await refreshBrandData(brand.id);
-              })
-            }
-            onSeed={() =>
-              run(async () => {
-                await api.seedFirstWeek(brand.id);
-                await refreshBrandData(brand.id);
-              })
-            }
-          />
-          <Connections
-            brand={brand}
-            accounts={accounts}
-            onConnect={(mode) =>
-              run(async () => {
-                if (mode === "mock") {
-                  await api.connectMock(brand.id);
-                  await refreshBrandData(brand.id);
-                } else {
-                  const { authorize_url } = await api.startOAuth(brand.id);
-                  window.location.href = authorize_url;
+          <nav className="flex flex-wrap gap-1 border-b border-white/10 pb-px">
+            {TABS.map((t) => (
+              <button
+                key={t.key}
+                onClick={() => setTab(t.key)}
+                className={`rounded-t-lg px-4 py-2 text-sm transition ${
+                  tab === t.key
+                    ? "border-b-2 border-[#6d5efc] font-medium text-white"
+                    : "text-white/55 hover:text-white"
+                }`}
+              >
+                {t.label}
+              </button>
+            ))}
+          </nav>
+
+          <div className="flex flex-col gap-6">
+            {tab === "overview" && (
+              <>
+                <AuditPanel
+                  report={audit}
+                  onRun={() => run(async () => { await api.runAudit(brand.id); await refreshBrandData(brand.id); })}
+                  onSeed={() => run(async () => { await api.seedFirstWeek(brand.id); await refreshBrandData(brand.id); })}
+                />
+                <Connections
+                  brand={brand}
+                  accounts={accounts}
+                  onConnect={(mode) =>
+                    run(async () => {
+                      if (mode === "mock") {
+                        await api.connectMock(brand.id);
+                        await refreshBrandData(brand.id);
+                      } else {
+                        const { authorize_url } = await api.startOAuth(brand.id);
+                        window.location.href = authorize_url;
+                      }
+                    })
+                  }
+                />
+              </>
+            )}
+
+            {tab === "content" && (
+              <>
+                <GenerateWeek
+                  onGenerate={(prompt) => run(async () => { await api.generateContent(brand.id, prompt); await refreshBrandData(brand.id); })}
+                />
+                <Composer
+                  accounts={accounts}
+                  onCreate={(input) => run(async () => { await api.createContent({ ...input, brand_id: brand.id }); await refreshBrandData(brand.id); })}
+                />
+                <ContentList
+                  items={content}
+                  onPublish={(id) => run(async () => { await api.publishNow(id); await refreshBrandData(brand.id); })}
+                  onApprove={(id) => run(async () => { await api.approveContent(id); await refreshBrandData(brand.id); })}
+                  onRepurpose={(id) => run(async () => { await api.repurposeContent(id); await refreshBrandData(brand.id); })}
+                />
+              </>
+            )}
+
+            {tab === "video" && <MediaPanel brandId={brand.id} />}
+            {tab === "analytics" && <AnalyticsPanel brandId={brand.id} />}
+            {tab === "ads" && <AdsPanel brandId={brand.id} />}
+            {tab === "inbox" && <InboxPanel brandId={brand.id} />}
+
+            {tab === "groups" && (
+              <LeadGroups
+                suggestions={groups}
+                queue={groupQueue}
+                onFind={() => run(async () => { await api.generateGroupSuggestions(brand.id); await refreshBrandData(brand.id); })}
+                onUpdate={(id, status) => run(async () => { await api.updateGroupSuggestion(id, status); await refreshBrandData(brand.id); })}
+                onQueue={(suggestionId, body) =>
+                  run(async () => {
+                    await api.queueGroupPost({ brand_id: brand.id, group_suggestion_id: suggestionId, body });
+                    await refreshBrandData(brand.id);
+                  })
                 }
-              })
-            }
-          />
-          <MediaPanel brandId={brand.id} />
-          <GenerateWeek
-            onGenerate={(prompt) =>
-              run(async () => {
-                await api.generateContent(brand.id, prompt);
-                await refreshBrandData(brand.id);
-              })
-            }
-          />
-          <Composer
-            accounts={accounts}
-            onCreate={(input) =>
-              run(async () => {
-                await api.createContent({ ...input, brand_id: brand.id });
-                await refreshBrandData(brand.id);
-              })
-            }
-          />
-          <AnalyticsPanel brandId={brand.id} />
-          <AdsPanel brandId={brand.id} />
-          <InboxPanel brandId={brand.id} />
-          <ContentList
-            items={content}
-            onPublish={(id) =>
-              run(async () => {
-                await api.publishNow(id);
-                await refreshBrandData(brand.id);
-              })
-            }
-            onApprove={(id) =>
-              run(async () => {
-                await api.approveContent(id);
-                await refreshBrandData(brand.id);
-              })
-            }
-            onRepurpose={(id) =>
-              run(async () => {
-                await api.repurposeContent(id);
-                await refreshBrandData(brand.id);
-              })
-            }
-          />
-          <LeadGroups
-            suggestions={groups}
-            queue={groupQueue}
-            onFind={() =>
-              run(async () => {
-                await api.generateGroupSuggestions(brand.id);
-                await refreshBrandData(brand.id);
-              })
-            }
-            onUpdate={(id, status) =>
-              run(async () => {
-                await api.updateGroupSuggestion(id, status);
-                await refreshBrandData(brand.id);
-              })
-            }
-            onQueue={(suggestionId, body) =>
-              run(async () => {
-                await api.queueGroupPost({
-                  brand_id: brand.id,
-                  group_suggestion_id: suggestionId,
-                  body,
-                });
-                await refreshBrandData(brand.id);
-              })
-            }
-          />
+              />
+            )}
+
+            {tab === "team" && orgId && <AgencyPanel orgId={orgId} />}
+          </div>
         </>
       )}
     </div>
   );
 }
+
+type TabKey =
+  | "overview"
+  | "content"
+  | "video"
+  | "analytics"
+  | "ads"
+  | "inbox"
+  | "groups"
+  | "team";
+
+const TABS: { key: TabKey; label: string }[] = [
+  { key: "overview", label: "Overview" },
+  { key: "content", label: "Content" },
+  { key: "video", label: "AI Video" },
+  { key: "analytics", label: "Analytics" },
+  { key: "ads", label: "Ads" },
+  { key: "inbox", label: "Inbox" },
+  { key: "groups", label: "Lead Groups" },
+  { key: "team", label: "Team" },
+];
 
 function CreateBrand({ onCreate }: { onCreate: (name: string) => void }) {
   const [name, setName] = useState("");

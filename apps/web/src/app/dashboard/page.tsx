@@ -1,6 +1,8 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { Workspace } from "@/components/workspace";
+import { SignOutButton } from "@/components/sign-out-button";
 
 export const dynamic = "force-dynamic";
 
@@ -15,14 +17,24 @@ export default async function DashboardPage() {
   }
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-3xl flex-col gap-6 px-6 py-12">
-      <header className="flex flex-col gap-1">
-        <h1 className="text-3xl font-semibold">Presence</h1>
-        <p className="text-sm text-white/60">
-          Signed in as <span className="font-medium">{user.email}</span>
-        </p>
+    <div className="min-h-screen">
+      <header className="sticky top-0 z-40 border-b border-white/5 bg-[#07070b]/70 backdrop-blur">
+        <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-3">
+          <Link href="/" className="flex items-center gap-2 font-semibold">
+            <span className="grid h-7 w-7 place-items-center rounded-lg bg-gradient-to-br from-[#6d5efc] to-[#22d3ee] text-sm">
+              P
+            </span>
+            Presence
+          </Link>
+          <div className="flex items-center gap-3 text-sm">
+            <span className="hidden text-white/50 sm:inline">{user.email}</span>
+            <SignOutButton />
+          </div>
+        </div>
       </header>
-      <Workspace />
-    </main>
+      <main className="mx-auto max-w-5xl px-6 py-8">
+        <Workspace />
+      </main>
+    </div>
   );
 }
