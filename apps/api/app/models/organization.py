@@ -29,6 +29,9 @@ class Organization(Base, TimestampMixin):
     credit_balance: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     # Billing tier (Phase 8): free | growth | agency. Drives per-brand/seat limits.
     plan: Mapped[str] = mapped_column(String(20), default="free", nullable=False)
+    # Stripe linkage (billing).
+    stripe_customer_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    stripe_subscription_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
 
     memberships: Mapped[list[Membership]] = relationship(
         back_populates="organization", cascade="all, delete-orphan"

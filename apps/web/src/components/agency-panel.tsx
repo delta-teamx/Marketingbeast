@@ -63,13 +63,23 @@ export function AgencyPanel({ orgId }: { orgId: string }) {
           <button
             key={p}
             disabled={busy || p === settings.plan}
-            onClick={() => run(async () => {
-              await api.changePlan(orgId, p);
-              await reload();
-            })}
+            onClick={() =>
+              run(async () => {
+                if (p === "free") {
+                  await api.changePlan(orgId, "free");
+                } else {
+                  const r = await api.billingCheckout(orgId, p);
+                  if (!r.completed) {
+                    window.location.href = r.url; // live Stripe Checkout
+                    return;
+                  }
+                }
+                await reload();
+              })
+            }
             className="btn-ghost rounded-lg px-3 py-1 text-xs capitalize disabled:opacity-40"
           >
-            {p}
+            {p === "free" ? "Free" : `Upgrade to ${p}`}
           </button>
         ))}
       </div>

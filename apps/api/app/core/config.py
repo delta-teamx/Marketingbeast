@@ -70,6 +70,20 @@ class Settings(BaseSettings):
     video_cost_credits: int = Field(default=10, alias="VIDEO_COST_CREDITS")
     starter_credits: int = Field(default=100, alias="STARTER_CREDITS")
 
+    # Billing (Stripe). "mock" (default) applies upgrades instantly for dev/tests;
+    # "stripe" uses Checkout + webhooks.
+    billing_provider: str = Field(default="mock", alias="BILLING_PROVIDER")
+    stripe_secret_key: str = Field(default="", alias="STRIPE_SECRET_KEY")
+    stripe_webhook_secret: str = Field(default="", alias="STRIPE_WEBHOOK_SECRET")
+    stripe_price_growth: str = Field(default="", alias="STRIPE_PRICE_GROWTH")
+    stripe_price_agency: str = Field(default="", alias="STRIPE_PRICE_AGENCY")
+    billing_success_url: str = Field(
+        default="http://localhost:3000/dashboard?upgraded=1", alias="BILLING_SUCCESS_URL"
+    )
+    billing_cancel_url: str = Field(
+        default="http://localhost:3000/pricing", alias="BILLING_CANCEL_URL"
+    )
+
     @property
     def cors_origins_list(self) -> list[str]:
         return [o.strip() for o in self.api_cors_origins.split(",") if o.strip()]

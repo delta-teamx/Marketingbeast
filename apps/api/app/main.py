@@ -12,6 +12,7 @@ from app.api.routers import (
     audit,
     auth,
     automation,
+    billing,
     brands,
     content,
     groups,
@@ -61,6 +62,7 @@ def create_app() -> FastAPI:
     app.include_router(ads.router)
     app.include_router(media.router)
     app.include_router(agency.router)
+    app.include_router(billing.router)
     return app
 
 

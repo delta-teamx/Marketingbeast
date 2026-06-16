@@ -13,9 +13,14 @@ from fastapi import HTTPException
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import get_settings
 from app.models.brand import Brand
+from app.models.media import CreditLedger
 from app.models.membership import Membership
 from app.models.organization import Organization
+
+# Monthly credit grant per plan (applied on upgrade).
+PLAN_CREDITS: dict[str, int] = {"free": 0, "growth": 200, "agency": 1000}
 
 
 @dataclass(frozen=True)
@@ -65,6 +70,26 @@ async def set_plan(session: AsyncSession, org: Organization, plan: str) -> Organ
     if plan not in PLAN_LIMITS:
         raise HTTPException(status_code=400, detail=f"Unknown plan '{plan}'")
     org.plan = plan
+    await session.commit()
+    await session.refresh(org)
+    return org
+
+
+def plan_price_id(plan: str) -> str:
+    s = get_settings()
+    return {"growth": s.stripe_price_growth, "agency": s.stripe_price_agency}.get(plan, "")
+
+
+async def complete_upgrade(session: AsyncSession, org: Organization, plan: str) -> Organization:
+    """Apply a paid plan: set the tier and grant its monthly credits (idempotent
+    per call). Used by mock checkout and the Stripe webhook."""
+    if plan not in PLAN_LIMITS:
+        raise HTTPException(status_code=400, detail=f"Unknown plan '{plan}'")
+    org.plan = plan
+    grant = PLAN_CREDITS.get(plan, 0)
+    if grant:
+        org.credit_balance += grant
+        session.add(CreditLedger(org_id=org.id, delta=grant, reason=f"{plan} plan credits"))
     await session.commit()
     await session.refresh(org)
     return org

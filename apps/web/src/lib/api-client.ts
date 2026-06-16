@@ -79,6 +79,11 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ plan }),
     }),
+  billingCheckout: (orgId: string, plan: "growth" | "agency") =>
+    call<{ url: string; completed: boolean; plan: string; credit_balance: number }>(
+      "/api/billing/checkout",
+      { method: "POST", body: JSON.stringify({ org_id: orgId, plan }) },
+    ),
   updateWhiteLabel: (orgId: string, wl: WhiteLabel) =>
     call<OrgSettings>(`/api/organizations/${orgId}/white-label`, {
       method: "PUT",

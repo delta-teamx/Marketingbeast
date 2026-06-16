@@ -79,28 +79,36 @@ change. (The provider's SDK call is the only thing to finish wiring — see
 
 ---
 
-## 3. Stripe — billing (the only new code)
+## 3. Stripe — billing (built; flip to live with keys)
 
-Plan tiers (`free` / `growth` / `agency`) and per-org limits already exist; the
-`credit_balance` + ledger already exist. Stripe connects money to them.
+The billing module is **implemented** (`services/stripe_client.py`,
+`app/api/routers/billing.py`). In `BILLING_PROVIDER=mock` (default) checkout
+applies the upgrade instantly for dev; in `stripe` mode it creates a real
+Checkout session and applies the plan when the signed webhook arrives.
 
-1. Create a Stripe account; in the dashboard create **Products/Prices**:
-   - Growth (monthly), Agency (monthly), and optional **credit packs**.
-2. Add to the API (new module — see option #2 work item):
-   - `POST /api/billing/checkout` → creates a Stripe Checkout session for a plan.
-   - `POST /api/billing/webhook` → on `checkout.session.completed` /
-     `customer.subscription.updated`, set `org.plan`; on a credit-pack purchase,
-     add to `credit_balance` (write a `CreditLedger` row).
-   - Store `stripe_customer_id` / `stripe_subscription_id` on the Organization.
-3. Env:
+- `GET /api/billing/plans` — plan catalog (limits + monthly credits).
+- `POST /api/billing/checkout` `{org_id, plan}` — returns a Checkout URL (live)
+  or completes instantly (mock); grants the plan's monthly credits.
+- `POST /api/billing/webhook` — verifies the Stripe signature and, on
+  `checkout.session.completed` / `customer.subscription.updated`, sets `org.plan`,
+  stores `stripe_customer_id` / `stripe_subscription_id`, and grants credits.
+
+To go live:
+1. `pip install stripe` (live client imports it lazily).
+2. Create Stripe **Products/Prices** for Growth and Agency.
+3. Add a webhook endpoint in Stripe pointing at
+   `https://<api-domain>/api/billing/webhook`.
+4. Env:
 ```
+BILLING_PROVIDER=stripe
 STRIPE_SECRET_KEY=sk_live_...
 STRIPE_WEBHOOK_SECRET=whsec_...
 STRIPE_PRICE_GROWTH=price_...
 STRIPE_PRICE_AGENCY=price_...
+BILLING_SUCCESS_URL=https://<web-domain>/dashboard?upgraded=1
+BILLING_CANCEL_URL=https://<web-domain>/pricing
 ```
-The current `POST /api/organizations/{id}/plan` (mock upgrade) is replaced by the
-Checkout flow in production.
+Credit grants per plan live in `services/billing.py` (`PLAN_CREDITS`).
 
 ---
 
