@@ -16,8 +16,15 @@ export function AuthForm({ mode }: { mode: Mode }) {
 
   const isSignup = mode === "signup";
 
+  const demo = process.env.NEXT_PUBLIC_DEMO === "1";
+
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
+    // Demo mode: no Supabase — go straight in.
+    if (demo) {
+      router.push(isSignup ? "/onboarding" : "/dashboard");
+      return;
+    }
     setError(null);
     setLoading(true);
     try {
@@ -51,6 +58,11 @@ export function AuthForm({ mode }: { mode: Mode }) {
             : "Sign in to your Presence workspace."}
         </p>
       </div>
+      {demo && (
+        <p className="rounded-lg border border-[#6d5efc]/30 bg-[#6d5efc]/10 p-3 text-xs text-white/70">
+          Demo mode — just click {isSignup ? "Sign up" : "Sign in"} (any email/password) to enter.
+        </p>
+      )}
       <form onSubmit={onSubmit} className="flex flex-col gap-4">
         <label className="flex flex-col gap-1 text-sm">
           Email

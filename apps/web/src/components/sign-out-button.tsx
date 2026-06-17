@@ -8,8 +8,10 @@ export function SignOutButton() {
   return (
     <button
       onClick={async () => {
-        await createClient().auth.signOut();
-        router.push("/login");
+        if (process.env.NEXT_PUBLIC_DEMO !== "1") {
+          await createClient().auth.signOut();
+        }
+        router.push(process.env.NEXT_PUBLIC_DEMO === "1" ? "/" : "/login");
       }}
       className="btn-ghost rounded-lg px-3 py-1.5 text-sm"
     >

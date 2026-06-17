@@ -6,14 +6,19 @@ import { SignOutButton } from "@/components/sign-out-button";
 
 export const dynamic = "force-dynamic";
 
-export default async function DashboardPage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+const DEMO = process.env.NEXT_PUBLIC_DEMO === "1";
 
-  if (!user) {
-    redirect("/login");
+export default async function DashboardPage() {
+  let email = "demo@presence.app";
+  if (!DEMO) {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) {
+      redirect("/login");
+    }
+    email = user.email ?? "";
   }
 
   return (
@@ -27,7 +32,7 @@ export default async function DashboardPage() {
             Presence
           </Link>
           <div className="flex items-center gap-3 text-sm">
-            <span className="hidden text-white/50 sm:inline">{user.email}</span>
+            <span className="hidden text-white/50 sm:inline">{email}</span>
             <SignOutButton />
           </div>
         </div>

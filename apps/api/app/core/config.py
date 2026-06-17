@@ -34,6 +34,9 @@ class Settings(BaseSettings):
         alias="SUPABASE_JWT_SECRET",
     )
     supabase_url: str = Field(default="", alias="SUPABASE_URL")
+    # Auth mode: "supabase" (default) validates Supabase JWTs; "dev" uses a single
+    # fixed demo user (no Supabase needed) — for local demos only.
+    auth_mode: str = Field(default="supabase", alias="AUTH_MODE")
 
     # Redis / Celery
     redis_url: str = Field(default="redis://127.0.0.1:6379/0", alias="REDIS_URL")

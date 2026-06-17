@@ -5,6 +5,11 @@ type CookieToSet = { name: string; value: string; options?: CookieOptions };
 
 /** Refreshes the Supabase auth session on each navigation (keeps cookies fresh). */
 export async function middleware(request: NextRequest) {
+  // Demo mode runs without Supabase — skip session refresh entirely.
+  if (process.env.NEXT_PUBLIC_DEMO === "1") {
+    return NextResponse.next({ request });
+  }
+
   let response = NextResponse.next({ request });
 
   const supabase = createServerClient(

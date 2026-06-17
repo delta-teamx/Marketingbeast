@@ -8,6 +8,7 @@ from fastapi import Depends, Header, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import get_settings
 from app.core.security import AuthenticatedUser, TokenError, decode_supabase_token
 from app.db.session import get_session
 from app.models.brand import Brand
@@ -16,11 +17,22 @@ from app.models.membership import Membership, OrgRole
 # Re-export the DB dependency under an API-friendly name.
 get_db = get_session
 
+# Fixed user used when AUTH_MODE=dev (local demo, no Supabase).
+DEMO_USER = AuthenticatedUser(
+    id="000000de-0000-4000-8000-0000000000de",
+    email="demo@presence.app",
+    role="authenticated",
+)
+
 
 async def get_current_user(
     authorization: str | None = Header(default=None),
 ) -> AuthenticatedUser:
-    """Validate the Supabase bearer token and return the user."""
+    """Return the authenticated user. In AUTH_MODE=dev, a fixed demo user (no
+    Supabase). Otherwise validate the Supabase bearer token."""
+    if get_settings().auth_mode == "dev":
+        return DEMO_USER
+
     if not authorization or not authorization.lower().startswith("bearer "):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
