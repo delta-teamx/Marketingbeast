@@ -10,7 +10,7 @@ from __future__ import annotations
 import json
 import re
 
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
@@ -70,12 +70,21 @@ def _script_and_storyboard(brand: Brand, note: str, product_url: str | None) -> 
 async def _charge_credits(
     session: AsyncSession, org: Organization, amount: int, reason: str
 ) -> None:
-    if org.credit_balance < amount:
+    # Atomic conditional decrement: the WHERE guards the balance under a row
+    # lock, so two concurrent renders for the same org can't both pass a stale
+    # check and overspend (no free credits / negative balance).
+    result = await session.execute(
+        update(Organization)
+        .where(Organization.id == org.id, Organization.credit_balance >= amount)
+        .values(credit_balance=Organization.credit_balance - amount)
+    )
+    if result.rowcount == 0:
         raise InsufficientCredits(
             f"Need {amount} credits, have {org.credit_balance}. Top up to generate."
         )
-    org.credit_balance -= amount
     session.add(CreditLedger(org_id=org.id, delta=-amount, reason=reason))
+    # Keep the in-memory org consistent with the committed decrement.
+    await session.refresh(org)
 
 
 async def generate_video(
