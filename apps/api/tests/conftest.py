@@ -22,6 +22,7 @@ import pytest  # noqa: E402
 from httpx import ASGITransport, AsyncClient  # noqa: E402
 from sqlalchemy.ext.asyncio import AsyncSession  # noqa: E402
 
+import app.models  # noqa: E402,F401  — register every table on Base.metadata
 from app.core.config import get_settings  # noqa: E402
 
 get_settings.cache_clear()
