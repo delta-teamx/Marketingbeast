@@ -23,9 +23,20 @@ from app.schemas.integration import ConnectMockIn, OAuthStartOut
 from app.schemas.social_account import SocialAccountOut
 from app.services.connections import upsert_connected_accounts
 from app.services.meta import get_meta_client
+from app.services.meta.base import MetaError
 from app.services.oauth_state import decode_state, encode_state
 
 router = APIRouter(prefix="/api/integrations/meta", tags=["integrations"])
+
+
+def _connect_redirect(*, ok: bool, reason: str | None = None) -> RedirectResponse:
+    """Bounce the user back to the dashboard with a connect status, never a raw
+    error page — the callback is a browser redirect target, not a JSON API."""
+    base = get_settings().web_app_url
+    if ok:
+        return RedirectResponse(url=f"{base}/dashboard?connected=1")
+    suffix = f"&reason={reason}" if reason else ""
+    return RedirectResponse(url=f"{base}/dashboard?connected=0{suffix}")
 
 
 @router.get("/oauth/start", response_model=OAuthStartOut)
@@ -41,20 +52,33 @@ async def oauth_start(
 
 @router.get("/oauth/callback")
 async def oauth_callback(
-    code: str,
-    state: str,
+    code: str | None = None,
+    state: str | None = None,
+    error: str | None = None,
+    error_description: str | None = None,
     session: AsyncSession = Depends(get_db),
 ) -> RedirectResponse:
-    settings = get_settings()
+    # The user can deny the Facebook dialog — Meta then redirects here with an
+    # `error` and no `code`. Always bounce back to the app, never a raw error.
+    if error:
+        return _connect_redirect(ok=False, reason="denied")
+    if not code or not state:
+        return _connect_redirect(ok=False, reason="missing_code")
+
     try:
         decoded = decode_state(state)
-    except jwt.PyJWTError as exc:
-        raise HTTPException(status_code=400, detail=f"Invalid state: {exc}") from exc
+    except jwt.PyJWTError:
+        # Expired (TTL) or tampered state — treat as a failed connect.
+        return _connect_redirect(ok=False, reason="invalid_state")
 
-    brand_id = uuid.UUID(decoded["brand_id"])
-    accounts = await get_meta_client().exchange_code_for_accounts(code)
-    await upsert_connected_accounts(session, brand_id, accounts)
-    return RedirectResponse(url=f"{settings.web_app_url}/dashboard?connected=1")
+    try:
+        brand_id = uuid.UUID(decoded["brand_id"])
+        accounts = await get_meta_client().exchange_code_for_accounts(code)
+        await upsert_connected_accounts(session, brand_id, accounts)
+    except MetaError:
+        return _connect_redirect(ok=False, reason="exchange_failed")
+
+    return _connect_redirect(ok=True)
 
 
 @router.post("/connect-mock", response_model=list[SocialAccountOut])
