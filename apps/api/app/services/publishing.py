@@ -9,7 +9,7 @@ from __future__ import annotations
 import uuid
 from datetime import UTC, datetime
 
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -108,7 +108,13 @@ async def publish_due_content(
     now: datetime | None = None,
     meta_client: MetaClient | None = None,
 ) -> list[uuid.UUID]:
-    """Publish every scheduled item whose time has arrived. Returns their ids."""
+    """Publish every scheduled item whose time has arrived. Returns their ids.
+
+    Claims the due items atomically (status → publishing) and commits that claim
+    *before* publishing any of them. publish_content_item commits per item, which
+    would otherwise release the row locks mid-batch and let a second concurrent
+    poller re-select the remaining `scheduled` items and double-post them.
+    """
     now = now or datetime.now(UTC)
     due = (
         await session.scalars(
@@ -120,6 +126,17 @@ async def publish_due_content(
             .with_for_update(skip_locked=True)
         )
     ).all()
+    if not due:
+        return []
+    # Durable claim: once committed, these are no longer `scheduled`, so another
+    # poller's selection above can't pick them up again.
+    await session.execute(
+        update(ContentItem)
+        .where(ContentItem.id.in_(due))
+        .values(status=ContentStatus.publishing)
+    )
+    await session.commit()
+
     for item_id in due:
         await publish_content_item(session, item_id, meta_client)
     return list(due)
