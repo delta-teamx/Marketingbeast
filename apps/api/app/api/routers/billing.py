@@ -9,6 +9,7 @@ from __future__ import annotations
 import uuid
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Request
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user, get_db, require_org_role
@@ -17,6 +18,7 @@ from app.core.logging import get_logger
 from app.core.security import AuthenticatedUser
 from app.models.membership import OrgRole
 from app.models.organization import Organization
+from app.models.webhook import ProcessedWebhookEvent
 from app.schemas.billing import CheckoutIn, CheckoutOut, PlanInfo
 from app.services.billing import (
     PLAN_CREDITS,
@@ -82,6 +84,18 @@ async def webhook(
     except Exception as exc:  # noqa: BLE001 - any verification failure → 400
         raise HTTPException(status_code=400, detail=f"Invalid webhook: {exc}") from exc
 
+    # Idempotency: Stripe delivers events at least once and may redeliver, and a
+    # single purchase fires several event types. Record each event id and bail if
+    # we've already handled it, so we never grant a plan's credits twice.
+    event_id = event.get("id")
+    if event_id:
+        session.add(ProcessedWebhookEvent(event_id=str(event_id), provider="stripe"))
+        try:
+            await session.flush()
+        except IntegrityError:
+            await session.rollback()
+            return {"status": "duplicate"}
+
     if event.get("type") in ("checkout.session.completed", "customer.subscription.updated"):
         obj = event.get("data", {}).get("object", {})
         meta = obj.get("metadata", {}) or {}
@@ -96,4 +110,6 @@ async def webhook(
                     org.stripe_subscription_id = obj["subscription"]
                 await complete_upgrade(session, org, plan)
                 logger.info("billing: org %s upgraded to %s via webhook", org_id, plan)
+    # Persist the idempotency record even for events that did no upgrade work.
+    await session.commit()
     return {"status": "ok"}

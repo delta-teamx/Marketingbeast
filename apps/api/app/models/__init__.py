@@ -35,6 +35,7 @@ from app.models.membership import Membership, OrgRole
 from app.models.onboarding import OnboardingProfile
 from app.models.organization import Organization
 from app.models.social_account import SocialAccount, SocialProvider
+from app.models.webhook import ProcessedWebhookEvent
 
 __all__ = [
     "AdAccount",
@@ -69,6 +70,7 @@ __all__ = [
     "OnboardingProfile",
     "OrgRole",
     "Organization",
+    "ProcessedWebhookEvent",
     "SocialAccount",
     "SocialProvider",
     "SuggestionStatus",
