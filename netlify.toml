@@ -5,6 +5,10 @@
 [build]
   base = "apps/web"
   command = "pnpm build"
+  # Relative to `base`, so this resolves to apps/web/.next. Pinned here so it
+  # overrides any publish dir auto-set in the UI (which doubled to
+  # apps/web/apps/web/.next and failed the Next.js plugin).
+  publish = ".next"
 
 [build.environment]
   NODE_VERSION = "20"
