@@ -36,9 +36,14 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 import { apiFetch } from "@/lib/api";
 
+// Demo mode runs with no Supabase project configured, so we must never
+// construct a Supabase client (it throws on missing env vars).
+const DEMO = process.env.NEXT_PUBLIC_DEMO === "1";
+
 // Lazily created in the browser so the client is never constructed during SSR.
 let _supabase: SupabaseClient | undefined;
-function sb(): SupabaseClient {
+function sb(): SupabaseClient | null {
+  if (DEMO) return null;
   return (_supabase ??= createClient());
 }
 
