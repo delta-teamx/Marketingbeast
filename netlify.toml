@@ -1,0 +1,22 @@
+# Netlify deploy config for the Presence web app (pnpm monorepo).
+# Netlify reads this from the repo root to determine the base directory, then
+# installs workspace deps from the pnpm root and builds the Next.js app via the
+# official plugin (App Router + serverless functions).
+[build]
+  base = "apps/web"
+  command = "pnpm build"
+  # Relative to `base`, so this resolves to apps/web/.next. Pinned here so it
+  # overrides any publish dir auto-set in the UI (which doubled to
+  # apps/web/apps/web/.next and failed the Next.js plugin).
+  publish = ".next"
+
+[build.environment]
+  NODE_VERSION = "20"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
+
+# Environment variables are set on the site (see Netlify UI / MCP), not committed:
+#   NEXT_PUBLIC_SUPABASE_URL
+#   NEXT_PUBLIC_SUPABASE_ANON_KEY
+#   NEXT_PUBLIC_API_BASE_URL   (points at the Render API once it is live)

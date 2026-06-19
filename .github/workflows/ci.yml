@@ -1,0 +1,104 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  api:
+    name: API (lint, migrate, test)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/api
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/postgres
+      REDIS_URL: redis://localhost:6379/0
+      SUPABASE_JWT_SECRET: test-jwt-secret-at-least-32-characters-long!!
+      FERNET_KEY: SjaxcdlQ7S94Jw19vRzrRIeRJS0IvzNPIVFllzUMI-w=
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.12"
+      - name: Install deps
+        run: uv sync --extra dev
+      - name: Lint
+        run: uv run ruff check .
+      - name: Validate migrations (up + down)
+        run: |
+          uv run alembic upgrade head
+          uv run alembic downgrade base
+      - name: Test
+        run: uv run pytest -q
+
+  web:
+    name: Web (lint, build, test)
+    runs-on: ubuntu-latest
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: http://localhost:54321
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-anon-key
+      NEXT_PUBLIC_API_BASE_URL: http://localhost:8000
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Install deps
+        run: pnpm install --frozen-lockfile
+      - name: Lint
+        run: pnpm --filter @presence/web lint
+      - name: Unit tests (Vitest)
+        run: pnpm --filter @presence/web test
+      - name: Build
+        run: pnpm --filter @presence/web build
+      - name: Install Playwright browser
+        run: pnpm --filter @presence/web exec playwright install --with-deps chromium
+      - name: E2E smoke (Playwright)
+        run: pnpm --filter @presence/web test:e2e
+
+  extension:
+    name: Extension (typecheck, test, build)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Install deps
+        run: pnpm install --frozen-lockfile
+      - name: Typecheck
+        run: pnpm --filter @presence/extension typecheck
+      - name: Unit tests (guardrails)
+        run: pnpm --filter @presence/extension test
+      - name: Build
+        run: pnpm --filter @presence/extension build

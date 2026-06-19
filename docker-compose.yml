@@ -1,0 +1,48 @@
+# Local dev infrastructure for Presence.
+#
+# Postgres + pgvector + GoTrue auth are provided by the Supabase CLI
+# (`supabase start`). This compose file runs the rest: Redis, and optionally
+# the API + Celery worker for a one-command stack.
+#
+# Usage:
+#   docker compose up redis            # just Redis (run api/web on host)
+#   docker compose --profile full up   # redis + api + worker in containers
+services:
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  api:
+    profiles: ["full"]
+    build:
+      context: ./apps/api
+    env_file:
+      - .env
+    environment:
+      # Inside the compose network, reach Redis by service name.
+      REDIS_URL: redis://redis:6379/0
+    ports:
+      - "8000:8000"
+    depends_on:
+      redis:
+        condition: service_healthy
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+
+  worker:
+    profiles: ["full"]
+    build:
+      context: ./apps/api
+    env_file:
+      - .env
+    environment:
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      redis:
+        condition: service_healthy
+    command: celery -A app.worker.celery_app.celery_app worker --loglevel=info

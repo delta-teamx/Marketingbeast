@@ -1,0 +1,17 @@
+{
+  "manifest_version": 3,
+  "name": "Presence — Group Assistant (Tier B)",
+  "version": "0.0.1",
+  "description": "Assisted, paced posting to Facebook groups you belong to. Runs in your browser; you confirm every post.",
+  "permissions": ["storage", "alarms", "tabs"],
+  "host_permissions": ["https://www.facebook.com/*"],
+  "background": { "service_worker": "background.js", "type": "module" },
+  "action": { "default_popup": "popup.html", "default_title": "Presence Group Assistant" },
+  "content_scripts": [
+    {
+      "matches": ["https://www.facebook.com/*"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}
