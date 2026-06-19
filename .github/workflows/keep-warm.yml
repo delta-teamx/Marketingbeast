@@ -1,0 +1,34 @@
+name: Keep API warm
+
+# Render's free tier puts the API to sleep after ~15 minutes of inactivity, so
+# the first dashboard load afterwards has to wait through a cold start. This job
+# pings the public health endpoint on a schedule to keep the instance awake.
+#
+# Tradeoff: keeping one web service effectively always-on consumes Render free
+# instance-hours (~750/month), which a single service fits within. If you move
+# the API to a paid plan (no spin-down), this workflow can be deleted.
+
+on:
+  schedule:
+    # Every 10 minutes — comfortably under the 15-minute spin-down window, with
+    # margin for GitHub's scheduler running cron a few minutes late.
+    - cron: "*/10 * * * *"
+  workflow_dispatch: {}
+
+# Don't pile up overlapping pings if a run is slow (cold start in progress).
+concurrency:
+  group: keep-warm
+  cancel-in-progress: false
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping API health endpoint
+        run: |
+          if curl -fsS --max-time 90 --retry 3 --retry-all-errors \
+               https://presence-api.onrender.com/health; then
+            echo "API is awake."
+          else
+            echo "Ping failed — the server may still be cold-starting."
+          fi
