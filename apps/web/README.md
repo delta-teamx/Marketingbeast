@@ -33,3 +33,5 @@ Chromium download (`pnpm --filter @presence/web exec playwright install chromium
 - `src/lib/api.ts` — fetch wrapper that attaches the Supabase token to API calls
 - `src/middleware.ts` — refreshes the auth session per navigation
 - `src/providers` — TanStack Query provider
+
+<!-- build: ensure NEXT_PUBLIC_API_BASE_URL is baked into production bundle -->
