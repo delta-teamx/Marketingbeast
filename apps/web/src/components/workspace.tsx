@@ -30,6 +30,7 @@ export function Workspace() {
   const [audit, setAudit] = useState<AuditReport | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [slow, setSlow] = useState(false);
   const [tab, setTab] = useState<TabKey>("overview");
 
   const refreshBrandData = useCallback(async (brandId: string) => {
@@ -64,6 +65,10 @@ export function Workspace() {
   );
 
   useEffect(() => {
+    // The API runs on a free tier that sleeps after idle; the first request
+    // wakes it (cold start). Surface a hint if loading drags on so it doesn't
+    // look frozen.
+    const slowTimer = setTimeout(() => setSlow(true), 4000);
     (async () => {
       try {
         await api.me(); // provision personal org
@@ -75,9 +80,11 @@ export function Workspace() {
       } catch (e) {
         setError((e as Error).message);
       } finally {
+        clearTimeout(slowTimer);
         setLoading(false);
       }
     })();
+    return () => clearTimeout(slowTimer);
   }, [selectOrgBrands]);
 
   async function run(fn: () => Promise<void>) {
@@ -91,9 +98,17 @@ export function Workspace() {
 
   if (loading) {
     return (
-      <div className="flex items-center gap-3 text-white/60">
-        <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/20 border-t-white/70" />
-        Loading workspace…
+      <div className="flex flex-col gap-2 text-white/60">
+        <div className="flex items-center gap-3">
+          <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/20 border-t-white/70" />
+          Loading workspace…
+        </div>
+        {slow && (
+          <p className="text-xs text-white/40">
+            Waking up the server — the first load after a quiet spell can take up
+            to a minute. Hang tight.
+          </p>
+        )}
       </div>
     );
   }
