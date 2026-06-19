@@ -3,6 +3,10 @@
 Next.js (App Router) + TypeScript + Tailwind v4. Auth via Supabase Auth;
 server state via TanStack Query. Deploys to Netlify.
 
+The frontend reads the API base URL from `NEXT_PUBLIC_API_BASE_URL` (set in the
+Netlify site environment); it is inlined at build time, so changing it requires
+a rebuild.
+
 ## Setup
 
 ```bash
