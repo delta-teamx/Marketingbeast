@@ -19,6 +19,7 @@ dependencies = [
     "pyjwt>=2.10.0",
     "cryptography>=44.0.0",
     "python-slugify>=8.0.0",
+    "anthropic>=0.40.0",
 ]
 
 [project.optional-dependencies]

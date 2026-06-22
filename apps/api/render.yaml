@@ -21,7 +21,9 @@ services:
       - key: FERNET_KEY
         sync: false
       - key: ANTHROPIC_API_KEY
-        sync: false
+        sync: false # Anthropic key — required for real AI (audit, content, replies)
+      - key: LLM_PROVIDER
+        value: auto # uses Claude when ANTHROPIC_API_KEY is set, else mock
       - key: API_CORS_ORIGINS
         sync: false # e.g. https://your-netlify-app.netlify.app
       - key: REDIS_URL
