@@ -17,6 +17,7 @@ import { InboxPanel } from "@/components/inbox-panel";
 import { AdsPanel } from "@/components/ads-panel";
 import { MediaPanel } from "@/components/media-panel";
 import { AgencyPanel } from "@/components/agency-panel";
+import { OnboardingForm } from "@/components/onboarding-form";
 
 export function Workspace() {
   const [orgs, setOrgs] = useState<Organization[]>([]);
@@ -195,16 +196,16 @@ export function Workspace() {
       )}
 
       {!brand ? (
-        <CreateBrand
-          onCreate={(name) =>
-            run(async () => {
-              if (!orgId) return;
-              const b = await api.createBrand(orgId, name);
-              setBrand(b);
-              await refreshBrandData(b.id);
-            })
-          }
-        />
+        <section className="card flex flex-col gap-4 p-5">
+          <OnboardingForm
+            embedded
+            onDone={() =>
+              run(async () => {
+                if (orgId) await selectOrgBrands(orgId);
+              })
+            }
+          />
+        </section>
       ) : (
         <>
           <nav className="flex flex-wrap gap-1 border-b border-white/10 pb-px">
@@ -226,6 +227,19 @@ export function Workspace() {
           <div className="flex flex-col gap-6">
             {tab === "overview" && (
               <>
+                <GrowthRoadmap
+                  hasAudit={!!audit}
+                  accountsConnected={accounts.length > 0}
+                  contentCount={content.length}
+                  groupCount={groups.length}
+                  onRunAudit={() =>
+                    run(async () => {
+                      await api.runAudit(brand.id);
+                      await refreshBrandData(brand.id);
+                    })
+                  }
+                  goTo={setTab}
+                />
                 <AuditPanel
                   report={audit}
                   onRun={() => run(async () => { await api.runAudit(brand.id); await refreshBrandData(brand.id); })}
@@ -316,25 +330,119 @@ const TABS: { key: TabKey; label: string }[] = [
   { key: "team", label: "Team" },
 ];
 
-function CreateBrand({ onCreate }: { onCreate: (name: string) => void }) {
-  const [name, setName] = useState("");
+function GrowthRoadmap({
+  hasAudit,
+  accountsConnected,
+  contentCount,
+  groupCount,
+  onRunAudit,
+  goTo,
+}: {
+  hasAudit: boolean;
+  accountsConnected: boolean;
+  contentCount: number;
+  groupCount: number;
+  onRunAudit: () => void;
+  goTo: (tab: TabKey) => void;
+}) {
+  const steps: {
+    label: string;
+    desc: string;
+    done: boolean;
+    cta?: { text: string; onClick: () => void };
+  }[] = [
+    {
+      label: "Tell us about your business",
+      desc: "Your profile and website power every recommendation below.",
+      done: true,
+    },
+    {
+      label: "Run your AI audit",
+      desc: "We read your website, score your social presence, and draft a 7-day content plan — your organic starting line.",
+      done: hasAudit,
+      cta: hasAudit ? undefined : { text: "Run audit", onClick: onRunAudit },
+    },
+    {
+      label: "Connect Facebook & Instagram",
+      desc: "Link your accounts to publish posts and measure real engagement. Use the Connections panel just below.",
+      done: accountsConnected,
+    },
+    {
+      label: "Approve your first week of content",
+      desc: "Turn one idea into a week of brand-voice posts with hashtags and best-time hints, then approve them.",
+      done: contentCount > 0,
+      cta: { text: "Go to Content", onClick: () => goTo("content") },
+    },
+    {
+      label: "Find free lead groups",
+      desc: "AI surfaces Facebook groups full of your ideal customers — organic leads with zero ad spend.",
+      done: groupCount > 0,
+      cta: { text: "Find lead groups", onClick: () => goTo("groups") },
+    },
+    {
+      label: "Track your results",
+      desc: "Sync insights regularly to prove your organic growth over time.",
+      done: false,
+      cta: { text: "Open Analytics", onClick: () => goTo("analytics") },
+    },
+  ];
+
+  const doneCount = steps.filter((s) => s.done).length;
+  const pct = Math.round((doneCount / steps.length) * 100);
+
   return (
-    <section className="flex flex-col gap-3">
-      <h2 className="text-xl font-medium">Create your first brand</h2>
-      <div className="flex gap-2">
-        <input
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="Acme Coffee"
-          className="flex-1 rounded-md border border-white/15 bg-transparent px-3 py-2"
-        />
-        <button
-          onClick={() => name && onCreate(name)}
-          className="rounded-md bg-white px-4 py-2 font-medium text-black"
-        >
-          Create
-        </button>
+    <section className="card flex flex-col gap-4 p-5">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <h2 className="text-xl font-medium">Your organic growth roadmap</h2>
+          <p className="text-sm text-white/50">
+            Follow these steps to grow without ad spend — and to prove it works.
+          </p>
+        </div>
+        <span className="text-sm text-white/60">
+          {doneCount}/{steps.length} done
+        </span>
       </div>
+
+      <div className="h-2 w-full overflow-hidden rounded bg-white/10">
+        <div
+          className="h-full bg-gradient-to-r from-[#6d5efc] to-[#22d3ee] transition-all"
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+
+      <ol className="flex flex-col gap-2">
+        {steps.map((s, i) => (
+          <li
+            key={s.label}
+            className="flex items-start gap-3 rounded-lg border border-white/10 p-3"
+          >
+            <span
+              className={`mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-full text-xs font-semibold ${
+                s.done
+                  ? "bg-emerald-500/20 text-emerald-300"
+                  : "bg-white/10 text-white/60"
+              }`}
+            >
+              {s.done ? "✓" : i + 1}
+            </span>
+            <div className="flex flex-1 flex-col gap-0.5">
+              <span className={s.done ? "text-white/60 line-through" : "font-medium"}>
+                {s.label}
+              </span>
+              <span className="text-xs text-white/50">{s.desc}</span>
+            </div>
+            {s.cta && (
+              <button
+                onClick={s.cta.onClick}
+                className="btn-ghost shrink-0 self-center rounded-lg px-3 py-1.5 text-xs"
+              >
+                {s.cta.text}
+              </button>
+            )}
+          </li>
+        ))}
+      </ol>
     </section>
   );
 }

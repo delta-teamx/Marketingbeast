@@ -24,7 +24,15 @@ const BUDGET = [
   ["2000_plus", "$2,000+/mo"],
 ];
 
-export function OnboardingForm() {
+export function OnboardingForm({
+  embedded = false,
+  onDone,
+}: {
+  /** When embedded in the dashboard, drop the full-screen wrapper. */
+  embedded?: boolean;
+  /** Called after a successful submit instead of navigating. */
+  onDone?: () => void | Promise<void>;
+} = {}) {
   const router = useRouter();
   const [form, setForm] = useState<OnboardingInput>({
     business_name: "",
@@ -76,7 +84,11 @@ export function OnboardingForm() {
     setLoading(true);
     try {
       await api.submitOnboarding(form);
-      router.push("/dashboard");
+      if (onDone) {
+        await onDone();
+      } else {
+        router.push("/dashboard");
+      }
     } catch (err) {
       setError((err as Error).message);
     } finally {
@@ -86,12 +98,24 @@ export function OnboardingForm() {
 
   const field = "rounded-lg border border-white/15 bg-transparent px-3 py-2 text-sm";
 
+  const Wrapper = embedded
+    ? ({ children }: { children: React.ReactNode }) => (
+        <div className="flex flex-col gap-6">{children}</div>
+      )
+    : ({ children }: { children: React.ReactNode }) => (
+        <main className="mx-auto flex min-h-screen max-w-xl flex-col justify-center gap-6 px-6 py-12">
+          {children}
+        </main>
+      );
+
   return (
-    <main className="mx-auto flex min-h-screen max-w-xl flex-col justify-center gap-6 px-6 py-12">
+    <Wrapper>
       <div>
         <h1 className="text-3xl font-bold">Tell us about your business</h1>
         <p className="mt-2 text-sm text-white/60">
-          A minute now lets Presence tailor your audit, voice and content.
+          A minute now lets Presence read your website and tailor your audit,
+          brand voice, and a week of content — the foundation of your free
+          (organic) growth plan.
         </p>
       </div>
 
@@ -131,11 +155,15 @@ export function OnboardingForm() {
           Website URL
           <input
             type="url"
-            placeholder="https://"
+            placeholder="https://yourbusiness.com"
             value={form.website_url ?? ""}
             onChange={(e) => set("website_url", e.target.value)}
             className={field}
           />
+          <span className="text-xs text-white/40">
+            We read your site to detect your niche and write on-brand content. No
+            site yet? Leave blank — you can add it later.
+          </span>
         </label>
         <label className="flex flex-col gap-1 text-sm">
           Industry
@@ -238,6 +266,6 @@ export function OnboardingForm() {
           {loading ? "Setting up…" : "Create my workspace →"}
         </button>
       </form>
-    </main>
+    </Wrapper>
   );
 }
