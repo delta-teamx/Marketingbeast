@@ -1,7 +1,8 @@
 """LLM provider abstraction.
 
-`get_llm_provider()` returns the configured provider (mock by default). Swap to
-Claude by setting LLM_PROVIDER=anthropic and ANTHROPIC_API_KEY.
+`get_llm_provider()` returns the configured provider. With the default
+LLM_PROVIDER=auto it uses Claude whenever ANTHROPIC_API_KEY is set, and falls
+back to the deterministic mock otherwise (so local dev and tests need no key).
 """
 
 from __future__ import annotations
@@ -13,7 +14,10 @@ from app.services.llm.mock import MockLLMProvider
 
 def get_llm_provider() -> LLMProvider:
     settings = get_settings()
-    if settings.llm_provider == "anthropic":
+    provider = settings.llm_provider
+    if provider == "auto":
+        provider = "anthropic" if settings.anthropic_api_key else "mock"
+    if provider == "anthropic":
         # Imported lazily so the `anthropic` SDK is only required when used.
         from app.services.llm.anthropic import ClaudeProvider
 

@@ -44,11 +44,13 @@ class Settings(BaseSettings):
     # Token encryption at rest (Fernet) — used for social OAuth tokens (Phase 1+).
     fernet_key: str = Field(default="", alias="FERNET_KEY")
 
-    # LLM provider
-    llm_provider: str = Field(default="mock", alias="LLM_PROVIDER")
+    # LLM provider. "auto" (default) uses Claude when ANTHROPIC_API_KEY is set,
+    # otherwise the deterministic mock. Set to "anthropic" or "mock" to force.
+    llm_provider: str = Field(default="auto", alias="LLM_PROVIDER")
     anthropic_api_key: str = Field(default="", alias="ANTHROPIC_API_KEY")
     llm_model: str = Field(default="claude-sonnet-4-6", alias="LLM_MODEL")
     llm_temperature: float = Field(default=0.7, alias="LLM_TEMPERATURE")
+    llm_max_tokens: int = Field(default=2048, alias="LLM_MAX_TOKENS")
 
     # Meta (Facebook / Instagram) — Tier A publishing.
     # mode "mock" (default) uses an in-process fake; "live" hits the Graph API.
