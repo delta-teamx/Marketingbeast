@@ -12,6 +12,7 @@ export function AuthForm({ mode }: { mode: Mode }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   const isSignup = mode === "signup";
@@ -26,18 +27,29 @@ export function AuthForm({ mode }: { mode: Mode }) {
       return;
     }
     setError(null);
+    setNotice(null);
     setLoading(true);
     try {
       const supabase = createClient();
-      const { error } = isSignup
+      const { data, error } = isSignup
         ? await supabase.auth.signUp({ email, password })
         : await supabase.auth.signInWithPassword({ email, password });
       if (error) {
         setError(error.message);
         return;
       }
-      // New users go through onboarding; returning users land on the dashboard.
-      router.push(isSignup ? "/onboarding" : "/dashboard");
+      // If email confirmation is on, signUp returns no session yet — don't push
+      // into the app (it would just bounce back to login). Tell the user to
+      // confirm, then sign in.
+      if (isSignup && !data.session) {
+        setNotice(
+          "Account created! Check your email to confirm, then sign in to set up your business.",
+        );
+        return;
+      }
+      // Everyone lands on the dashboard, which walks new users through
+      // onboarding (business profile + website) before showing the workspace.
+      router.push("/dashboard");
     } finally {
       setLoading(false);
     }
@@ -88,6 +100,11 @@ export function AuthForm({ mode }: { mode: Mode }) {
           />
         </label>
         {error && <p className="text-sm text-red-400">{error}</p>}
+        {notice && (
+          <p className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3 text-sm text-emerald-300">
+            {notice}
+          </p>
+        )}
         <button
           type="submit"
           disabled={loading}
