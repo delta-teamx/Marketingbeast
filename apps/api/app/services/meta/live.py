@@ -45,6 +45,7 @@ class LiveMetaClient:
         self._app_id = s.meta_app_id
         self._app_secret = s.meta_app_secret
         self._redirect_uri = s.meta_redirect_uri
+        self._graph_version = s.meta_graph_version
         self._base = f"https://graph.facebook.com/{s.meta_graph_version}"
 
     def build_oauth_url(self, state: str) -> str:
@@ -55,7 +56,9 @@ class LiveMetaClient:
             "scope": ",".join(OAUTH_SCOPES),
             "response_type": "code",
         }
-        return f"https://www.facebook.com/v21.0/dialog/oauth?{urlencode(params)}"
+        return (
+            f"https://www.facebook.com/{self._graph_version}/dialog/oauth?{urlencode(params)}"
+        )
 
     async def exchange_code_for_accounts(self, code: str) -> list[ConnectedAccount]:
         async with httpx.AsyncClient(timeout=30) as client:
