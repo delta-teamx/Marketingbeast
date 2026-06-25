@@ -169,6 +169,14 @@ export const api = {
     call<MediaJob>(`/api/media-jobs/${id}/poll`, { method: "POST" }),
   listMediaAssets: (brandId: string) =>
     call<MediaAsset[]>(`/api/brands/${brandId}/media-assets`),
+  publishReel: (
+    assetId: string,
+    input: { body: string; target_account_ids: string[]; scheduled_time?: string | null },
+  ) =>
+    call<ContentItem>(`/api/media-assets/${assetId}/publish`, {
+      method: "POST",
+      body: JSON.stringify(input),
+    }),
 
   // --- Ads ---
   connectAdAccount: (brandId: string) =>

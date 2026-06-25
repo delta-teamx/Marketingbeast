@@ -68,9 +68,12 @@ class Settings(BaseSettings):
     # Frequency (seconds) of the Celery beat job that publishes due content.
     publish_poll_seconds: float = Field(default=60.0, alias="PUBLISH_POLL_SECONDS")
 
-    # AI media generation (video/reels). "mock" (default) or a provider name.
+    # AI media generation (video/reels). "mock" (default) or a provider name
+    # (e.g. "creatify"). Creatify auth needs BOTH an API id and key.
     media_provider: str = Field(default="mock", alias="MEDIA_PROVIDER")
+    media_api_id: str = Field(default="", alias="MEDIA_API_ID")
     media_api_key: str = Field(default="", alias="MEDIA_API_KEY")
+    media_base_url: str = Field(default="https://api.creatify.ai", alias="MEDIA_BASE_URL")
     # Credits charged per generated video, and starter credits per new org.
     video_cost_credits: int = Field(default=10, alias="VIDEO_COST_CREDITS")
     starter_credits: int = Field(default=100, alias="STARTER_CREDITS")

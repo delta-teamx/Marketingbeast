@@ -6,7 +6,8 @@ mock); kept compliant and ready for real credentials + App Review.
 
 from __future__ import annotations
 
-from urllib.parse import urlencode
+import asyncio
+from urllib.parse import urlencode, urlsplit
 
 import httpx
 
@@ -30,6 +31,12 @@ OAUTH_SCOPES = [
     "instagram_content_publish",
     "business_management",
 ]
+
+
+def _is_video(url: str) -> bool:
+    """True if the URL points to a video file (by extension, ignoring query)."""
+    path = urlsplit(url).path.lower()
+    return path.endswith((".mp4", ".mov", ".m4v"))
 
 
 class LiveMetaClient:
@@ -124,7 +131,12 @@ class LiveMetaClient:
         body: str,
         media_urls: list[str],
     ) -> PublishResult:
-        if media_urls:
+        if media_urls and _is_video(media_urls[0]):
+            resp = await client.post(
+                f"{self._base}/{page_id}/videos",
+                data={"file_url": media_urls[0], "description": body, "access_token": token},
+            )
+        elif media_urls:
             resp = await client.post(
                 f"{self._base}/{page_id}/photos",
                 data={"url": media_urls[0], "caption": body, "access_token": token},
@@ -148,13 +160,40 @@ class LiveMetaClient:
     ) -> PublishResult:
         if not media_urls:
             raise MetaError("Instagram posts require at least one media URL")
-        # Step 1: create a media container.
-        create = await client.post(
-            f"{self._base}/{ig_user_id}/media",
-            data={"image_url": media_urls[0], "caption": body, "access_token": token},
-        )
-        self._raise_for_error(create)
-        creation_id = create.json()["id"]
+        # Step 1: create a media container (Reels for video, image otherwise).
+        if _is_video(media_urls[0]):
+            create = await client.post(
+                f"{self._base}/{ig_user_id}/media",
+                data={
+                    "media_type": "REELS",
+                    "video_url": media_urls[0],
+                    "caption": body,
+                    "access_token": token,
+                },
+            )
+            self._raise_for_error(create)
+            creation_id = create.json()["id"]
+            # Reels containers transcode asynchronously: poll readiness before
+            # publishing. Bounded to ~10 attempts so we never block forever.
+            for _ in range(10):
+                check = await client.get(
+                    f"{self._base}/{creation_id}",
+                    params={"fields": "status_code", "access_token": token},
+                )
+                self._raise_for_error(check)
+                status_code = check.json().get("status_code")
+                if status_code == "FINISHED":
+                    break
+                if status_code == "ERROR":
+                    raise MetaError("Instagram Reels container processing failed")
+                await asyncio.sleep(2)
+        else:
+            create = await client.post(
+                f"{self._base}/{ig_user_id}/media",
+                data={"image_url": media_urls[0], "caption": body, "access_token": token},
+            )
+            self._raise_for_error(create)
+            creation_id = create.json()["id"]
         # Step 2: publish the container.
         publish = await client.post(
             f"{self._base}/{ig_user_id}/media_publish",

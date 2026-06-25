@@ -9,6 +9,8 @@ from __future__ import annotations
 
 import json
 import re
+import uuid
+from datetime import datetime
 
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -172,3 +174,34 @@ async def add_credits(
 
 async def get_org_for_brand(session: AsyncSession, brand: Brand) -> Organization:
     return await session.get(Organization, brand.org_id)
+
+
+async def publish_media_asset(
+    session: AsyncSession,
+    *,
+    asset: MediaAsset,
+    body: str,
+    target_account_ids: list[uuid.UUID],
+    scheduled_time: datetime | None = None,
+):
+    """Turn a generated MediaAsset into a reel ContentItem and publish/schedule it.
+
+    Publishes immediately when no `scheduled_time` is given; otherwise leaves the
+    item scheduled for the due-poller. Returns the resulting ContentItem.
+    """
+    # Imported here to avoid a circular import (publishing → media services).
+    from app.models.content import ContentType
+    from app.services.publishing import create_content_item, publish_content_item
+
+    item = await create_content_item(
+        session,
+        brand_id=asset.brand_id,
+        body=body,
+        content_type=ContentType.reel,
+        media_urls=[asset.url],
+        target_account_ids=target_account_ids,
+        scheduled_time=scheduled_time,
+    )
+    if scheduled_time is None:
+        return await publish_content_item(session, item.id)
+    return item

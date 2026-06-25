@@ -11,6 +11,8 @@ import uuid
 from dataclasses import dataclass, field
 from typing import Any, Protocol, runtime_checkable
 
+import httpx
+
 from app.core.config import get_settings
 
 
@@ -58,6 +60,57 @@ class MockMediaProvider:
         )
 
 
+# Creatify "link-to-video" provider (MEDIA_PROVIDER=creatify).
+#
+# Like app/services/meta/live.py, this is implemented against Creatify's
+# published API and is ready for real credentials, but is NOT exercised by the
+# test suite (which uses the mock). The exact endpoint paths and response field
+# names below follow Creatify's documented API and SHOULD BE VERIFIED against the
+# current Creatify API docs with real credentials before production use.
+class CreatifyMediaProvider:
+    name = "creatify"
+
+    def __init__(self) -> None:
+        s = get_settings()
+        self._base = s.media_base_url.rstrip("/")
+        self._headers = {
+            "X-API-ID": s.media_api_id,
+            "X-API-KEY": s.media_api_key,
+        }
+
+    def start_render(self, brief: RenderBrief) -> str:
+        if not brief.product_url:
+            raise RuntimeError("Creatify requires a product_url for link-to-video")
+        with httpx.Client(timeout=60, headers=self._headers) as client:
+            resp = client.post(
+                f"{self._base}/api/link_to_videos/",
+                json={"link": brief.product_url, "name": brief.script[:64] or "reel"},
+            )
+        if resp.status_code >= 400:
+            raise RuntimeError(f"Creatify {resp.status_code}: {resp.text}")
+        return str(resp.json()["id"])
+
+    def poll_render(self, external_job_id: str) -> RenderStatus:
+        # Never raise in poll: an HTTP/transport error maps to a failed render so
+        # the job loop can record it rather than crash the poller.
+        try:
+            with httpx.Client(timeout=30, headers=self._headers) as client:
+                resp = client.get(f"{self._base}/api/link_to_videos/{external_job_id}/")
+            if resp.status_code >= 400:
+                return RenderStatus(external_job_id=external_job_id, ready=False, failed=True)
+            data = resp.json()
+        except httpx.HTTPError:
+            return RenderStatus(external_job_id=external_job_id, ready=False, failed=True)
+
+        status = data.get("status")
+        if status == "done":
+            asset_url = data.get("video_output") or data.get("output") or data.get("video_url")
+            return RenderStatus(external_job_id=external_job_id, ready=True, asset_url=asset_url)
+        if status in ("error", "failed"):
+            return RenderStatus(external_job_id=external_job_id, ready=False, failed=True)
+        return RenderStatus(external_job_id=external_job_id, ready=False)
+
+
 class StubMediaProvider:
     """Placeholder for a real provider (runway/creatify/heygen)."""
 
@@ -75,4 +128,6 @@ def get_media_provider() -> MediaProvider:
     provider = get_settings().media_provider
     if provider in ("", "mock"):
         return MockMediaProvider()
+    if provider == "creatify":
+        return CreatifyMediaProvider()
     return StubMediaProvider(provider)

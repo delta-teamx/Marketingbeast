@@ -281,7 +281,7 @@ export function Workspace() {
               </>
             )}
 
-            {tab === "video" && <MediaPanel brandId={brand.id} />}
+            {tab === "video" && <MediaPanel brandId={brand.id} accounts={accounts} />}
             {tab === "analytics" && <AnalyticsPanel brandId={brand.id} />}
             {tab === "ads" && <AdsPanel brandId={brand.id} />}
             {tab === "inbox" && <InboxPanel brandId={brand.id} />}
