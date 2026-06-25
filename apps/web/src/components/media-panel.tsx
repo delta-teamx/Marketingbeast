@@ -124,7 +124,14 @@ export function MediaPanel({
               )}
               {j.status === "ready" && (() => {
                 const asset = assets.find((a) => a.url === j.asset_url);
-                if (!asset) return null;
+                if (!asset) {
+                  // The job is ready but its asset hasn't shown up in the list
+                  // yet (brief sync lag) — show a clear waiting state, not a
+                  // silently missing button.
+                  return (
+                    <span className="text-xs text-white/50">Preparing reel…</span>
+                  );
+                }
                 return (
                   <button
                     disabled={busy || accounts.length === 0}

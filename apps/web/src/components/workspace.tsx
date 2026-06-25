@@ -76,6 +76,12 @@ export function Workspace() {
         const [orgList, pending] = await Promise.all([api.listOrgs(), api.myInvites()]);
         setOrgs(orgList);
         setInvites(pending);
+        if (!orgList[0]) {
+          // me() provisions a personal org, so this is only reachable if that
+          // raced or failed — fail with a clear, recoverable message.
+          setError("We couldn't finish setting up your workspace. Please refresh to try again.");
+          return;
+        }
         setOrgId(orgList[0].id);
         await selectOrgBrands(orgList[0].id);
       } catch (e) {
@@ -500,17 +506,18 @@ function Composer({
     body: string;
     target_account_ids: string[];
     scheduled_time?: string | null;
-  }) => void;
+  }) => void | Promise<void>;
 }) {
   const [body, setBody] = useState("");
   const [targets, setTargets] = useState<string[]>([]);
   const [scheduledAt, setScheduledAt] = useState("");
+  const [busy, setBusy] = useState(false);
 
   function toggle(id: string) {
     setTargets((t) => (t.includes(id) ? t.filter((x) => x !== id) : [...t, id]));
   }
 
-  const disabled = !body || targets.length === 0;
+  const disabled = !body || targets.length === 0 || busy;
 
   return (
     <section className="flex flex-col gap-3">
@@ -548,21 +555,26 @@ function Composer({
         </label>
         <button
           disabled={disabled}
-          onClick={() => {
-            onCreate({
-              body,
-              target_account_ids: targets,
-              scheduled_time: scheduledAt
-                ? new Date(scheduledAt).toISOString()
-                : null,
-            });
-            setBody("");
-            setTargets([]);
-            setScheduledAt("");
+          onClick={async () => {
+            setBusy(true);
+            try {
+              await onCreate({
+                body,
+                target_account_ids: targets,
+                scheduled_time: scheduledAt
+                  ? new Date(scheduledAt).toISOString()
+                  : null,
+              });
+              setBody("");
+              setTargets([]);
+              setScheduledAt("");
+            } finally {
+              setBusy(false);
+            }
           }}
           className="rounded-md bg-white px-4 py-2 font-medium text-black disabled:opacity-40"
         >
-          {scheduledAt ? "Schedule" : "Save draft"}
+          {busy ? "Saving…" : scheduledAt ? "Schedule" : "Save draft"}
         </button>
       </div>
     </section>
