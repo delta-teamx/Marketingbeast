@@ -17,29 +17,37 @@ app runs end-to-end before any Meta/Anthropic/Stripe keys are added.
 - Build env vars set: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
 
 ## 🛠 Render (you) — the API (`apps/api`)
-Create a **Web Service** from this repo, root dir `apps/api`.
-- Build: `pip install uv && uv sync`
-- Start: `uv run uvicorn app.main:app --host 0.0.0.0 --port $PORT`
-  (DB schema is already applied; no migration step needed on first boot.)
+Deploy via **Blueprint**, not a hand-made service: in Render, New → **Blueprint**,
+connect this repo, and point at **`apps/api/render.yaml`**. The blueprint creates
+everything in one shot:
+- `presence-api` — the web service (Docker; `preDeployCommand` runs
+  `alembic upgrade head` each deploy).
+- `presence-worker` — the Celery worker (runs queued/scheduled tasks).
+- `presence-beat` — the Celery **beat scheduler** (enqueues due work: scheduled
+  publishing, daily insights, render polling). Without this nothing scheduled fires.
+- `presence-redis` — the Celery broker/backend.
 
-### Render environment variables
+The three app services share one env-var group (`presence-shared`) so the worker
+never silently runs in mock while the API is live.
+
+### Render environment variables (set on the `presence-shared` group)
+The blueprint declares these as `sync: false` (secrets) — fill them in once in the
+Render dashboard after the first apply:
+
 | Key | Value |
 |-----|-------|
 | `DATABASE_URL` | `postgresql+asyncpg://postgres.eurlrgolgntdngyaexqr:[DB_PASSWORD]@aws-0-us-east-1.pooler.supabase.com:5432/postgres` (Supabase **Session pooler**, IPv4) |
 | `SUPABASE_URL` | `https://eurlrgolgntdngyaexqr.supabase.co` |
 | `SUPABASE_JWT_SECRET` | from Supabase → Settings → API → **JWT Secret** |
 | `FERNET_KEY` | generate once and keep stable (token encryption) |
-| `API_ENV` | `production` |
-| `API_CORS_ORIGINS` | `https://presence-marketing-app.netlify.app` |
 | `WEB_APP_URL` | `https://presence-marketing-app.netlify.app` |
-| `LLM_PROVIDER` | `mock` (switch to `anthropic` + `ANTHROPIC_API_KEY` later) |
-| `META_MODE` | `mock` (switch to `live` after Meta App Review) |
-| `BILLING_PROVIDER` | `mock` (switch to `stripe` + keys later) |
-| `MEDIA_PROVIDER` | `mock` |
+| `API_CORS_ORIGINS` | `https://presence-marketing-app.netlify.app` (on the `presence-api` service) |
 
-> Background jobs (scheduled publishing, insights/inbox polling) run via Celery
-> beat + a worker against `REDIS_URL`. The web API boots fine without them; add a
-> Render Redis instance + a worker service when you want scheduling live.
+Provider modes (`LLM_PROVIDER`, `META_MODE`, `BILLING_PROVIDER`, `MEDIA_PROVIDER`)
+default to `mock` in the blueprint; flip them to live per `GO_LIVE.md` once the
+corresponding keys (and Meta App Review) are in place. `API_ENV` is `production`,
+so the API refuses to boot if `SUPABASE_JWT_SECRET` is still the dev default or
+`FERNET_KEY` is empty — set both before the first deploy.
 
 ## 🔧 Remaining manual steps
 1. **Netlify → link repo**: Site → Build & deploy → Link repository →
