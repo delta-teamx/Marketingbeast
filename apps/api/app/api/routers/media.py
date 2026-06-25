@@ -23,6 +23,7 @@ from app.schemas.media import (
 )
 from app.services.media import (
     InsufficientCredits,
+    RenderStartError,
     add_credits,
     generate_video,
     get_org_for_brand,
@@ -78,6 +79,12 @@ async def generate(
         )
     except InsufficientCredits as exc:
         raise HTTPException(status_code=402, detail=str(exc)) from exc
+    except RenderStartError as exc:
+        # Credits were refunded inside the service; tell the client it's a
+        # provider problem (502), not a client error.
+        raise HTTPException(
+            status_code=502, detail=f"Video provider could not start the render: {exc}"
+        ) from exc
 
 
 @router.get("/brands/{brand_id}/media-jobs", response_model=list[MediaJobOut])

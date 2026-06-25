@@ -136,7 +136,7 @@ async def draft_reply(session: AsyncSession, conv: Conversation) -> str:
             "You are a friendly brand replying to a customer on social media. "
             "Write ONE short, helpful, non-generic reply. No hashtags."
         )
-        result = get_llm_provider().generate(
+        result = await get_llm_provider().agenerate(
             system, [LLMMessage(role="user", content=f"Customer said: {last}")]
         )
         return result.text.strip()

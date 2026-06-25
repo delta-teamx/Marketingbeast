@@ -8,13 +8,13 @@ from app.models.ads import CreativeStatus
 from app.services.ads import generate_creatives, recommendations
 
 
-def test_generate_creatives_count_capped() -> None:
+async def test_generate_creatives_count_capped() -> None:
     brand = SimpleNamespace(name="Acme Coffee")
-    ideas = generate_creatives(brand, "fall menu", count=15)
+    ideas = await generate_creatives(brand, "fall menu", count=15)
     assert len(ideas) == 15
     assert all(i.headline for i in ideas)
     # Capped at 20.
-    assert len(generate_creatives(brand, "x", count=99)) == 20
+    assert len(await generate_creatives(brand, "x", count=99)) == 20
 
 
 def test_recommendations_scale_and_pause() -> None:

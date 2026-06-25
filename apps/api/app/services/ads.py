@@ -52,7 +52,7 @@ async def connect_mock_account(session: AsyncSession, brand: Brand) -> AdAccount
     return account
 
 
-def generate_creatives(brand: Brand, concept: str, count: int = 12) -> list[CreativeIdea]:
+async def generate_creatives(brand: Brand, concept: str, count: int = 12) -> list[CreativeIdea]:
     """Produce N ad creative variations for one concept."""
     settings = get_settings()
     count = max(1, min(count, 20))
@@ -65,7 +65,7 @@ def generate_creatives(brand: Brand, concept: str, count: int = 12) -> list[Crea
         'Respond ONLY with a JSON array of {"headline", "primary_text"}.'
     )
     user = f"Brand: {brand.name}\nConcept: {concept}\nN = {count}"
-    result = get_llm_provider().generate(system, [Message(role="user", content=user)])
+    result = await get_llm_provider().agenerate(system, [Message(role="user", content=user)])
     try:
         raw = json.loads(re.search(r"\[.*\]", result.text, re.DOTALL).group(0))
         ideas = [CreativeIdea(x["headline"], x.get("primary_text", "")) for x in raw[:count]]
@@ -125,7 +125,7 @@ async def launch_campaign(
     session.add(campaign)
     await session.flush()
 
-    for i, idea in enumerate(generate_creatives(brand, concept, n_variations)):
+    for i, idea in enumerate(await generate_creatives(brand, concept, n_variations)):
         creative_ext = client.create_creative(campaign_external_id=ext, headline=idea.headline)
         session.add(
             AdCreative(

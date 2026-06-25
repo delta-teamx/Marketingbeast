@@ -78,7 +78,7 @@ async def detect_niche(*, brand_name: str, website_text: str, vertical: str | No
         f"Business name: {brand_name}\nVertical: {vertical or 'unknown'}\n"
         f"Website text:\n{website_text}"
     )
-    result = get_llm_provider().generate(system, [Message(role="user", content=user)])
+    result = await get_llm_provider().agenerate(system, [Message(role="user", content=user)])
     try:
         return NicheProfile.model_validate(_extract_json(result.text))
     except (ValidationError, ValueError, json.JSONDecodeError) as exc:
@@ -101,7 +101,7 @@ async def suggest_groups(*, brand_name: str, niche: NicheProfile) -> list[GroupS
         "Prefer active, buyer-intent communities; avoid spammy promo groups."
     )
     user = f"Business: {brand_name}\nNiche: {niche.category}\nKeywords: {', '.join(niche.keywords)}"
-    result = get_llm_provider().generate(system, [Message(role="user", content=user)])
+    result = await get_llm_provider().agenerate(system, [Message(role="user", content=user)])
     try:
         raw = _extract_json(result.text)
         items = [GroupSuggestionData.model_validate(x) for x in raw]
