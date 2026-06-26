@@ -270,15 +270,10 @@ export function Workspace() {
                 <Connections
                   brand={brand}
                   accounts={accounts}
-                  onConnect={(mode) =>
+                  onConnect={() =>
                     run(async () => {
-                      if (mode === "mock") {
-                        await api.connectMock(brand.id);
-                        await refreshBrandData(brand.id);
-                      } else {
-                        const { authorize_url } = await api.startOAuth(brand.id);
-                        window.location.href = authorize_url;
-                      }
+                      const { authorize_url } = await api.startOAuth(brand.id);
+                      window.location.href = authorize_url;
                     })
                   }
                 />
@@ -615,7 +610,7 @@ function Connections({
 }: {
   brand: Brand;
   accounts: SocialAccount[];
-  onConnect: (mode: "oauth" | "mock") => void;
+  onConnect: () => void;
 }) {
   return (
     <section className="flex flex-col gap-3">
@@ -636,16 +631,10 @@ function Connections({
       )}
       <div className="flex gap-2">
         <button
-          onClick={() => onConnect("oauth")}
-          className="rounded-md border border-white/20 px-4 py-2 text-sm hover:bg-white/5"
+          onClick={() => onConnect()}
+          className="btn-primary rounded-lg px-4 py-2 text-sm font-medium"
         >
           Connect Facebook &amp; Instagram
-        </button>
-        <button
-          onClick={() => onConnect("mock")}
-          className="rounded-md border border-white/10 px-4 py-2 text-sm text-white/60 hover:bg-white/5"
-        >
-          Dev: connect mock accounts
         </button>
       </div>
     </section>

@@ -147,9 +147,7 @@ export function ProfileSettings() {
             <Row label="Credits" value={String(settings.credit_balance)} />
 
             <div className="flex flex-col gap-2 pt-2">
-              <span className="text-xs text-white/50">
-                Change plan (mock billing — applies instantly)
-              </span>
+              <span className="text-xs text-white/50">Change plan</span>
               <div className="flex flex-wrap gap-2">
                 {PLANS.map((p) => {
                   const active = settings.plan === p.key;

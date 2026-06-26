@@ -15,6 +15,10 @@ def _settings(**overrides: object) -> SimpleNamespace:
         "auth_mode": "supabase",
         "supabase_jwt_secret": "a-real-rotated-production-secret-value-32+chars",
         "fernet_key": "ZmFrZS1mZXJuZXQta2V5LWZvci10ZXN0aW5nLW9ubHk=",
+        # Provider modes — read by the guard's production-warning pass.
+        "meta_mode": "live",
+        "billing_provider": "stripe",
+        "media_provider": "mock",
     }
     base.update(overrides)
     return SimpleNamespace(**base)
@@ -41,8 +45,33 @@ def test_production_allows_properly_configured_secrets() -> None:
     _validate_production_settings(_settings())
 
 
-def test_dev_auth_mode_does_not_require_jwt_secret() -> None:
-    # In dev-auth mode the JWT secret is unused, so its default is acceptable.
-    _validate_production_settings(
-        _settings(auth_mode="dev", supabase_jwt_secret=_DEV_JWT_SECRET)
-    )
+def test_production_rejects_dev_auth_mode() -> None:
+    # AUTH_MODE=dev is a full authentication bypass — it must never boot in prod,
+    # even though its forged demo user wouldn't otherwise need a real JWT secret.
+    with pytest.raises(RuntimeError, match="AUTH_MODE=dev"):
+        _validate_production_settings(_settings(auth_mode="dev"))
+
+
+def test_production_warns_but_boots_with_mock_providers(caplog: pytest.LogCaptureFixture) -> None:
+    # Mock providers don't break startup (billing/media have no live key yet), but
+    # the guard must log a loud warning so a deploy never silently fakes them.
+    import logging
+
+    with caplog.at_level(logging.WARNING, logger="presence.startup"):
+        _validate_production_settings(
+            _settings(meta_mode="mock", billing_provider="mock", media_provider="mock")
+        )
+    blob = " ".join(r.message for r in caplog.records)
+    assert "META_MODE" in blob
+    assert "BILLING_PROVIDER" in blob
+    assert "MEDIA_PROVIDER" in blob
+
+
+def test_production_live_providers_emit_no_warning(caplog: pytest.LogCaptureFixture) -> None:
+    import logging
+
+    with caplog.at_level(logging.WARNING, logger="presence.startup"):
+        _validate_production_settings(
+            _settings(meta_mode="live", billing_provider="stripe", media_provider="creatify")
+        )
+    assert not [r for r in caplog.records if r.levelno >= logging.WARNING]

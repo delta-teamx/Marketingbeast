@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import logging
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -40,6 +42,10 @@ def _validate_production_settings(settings: Settings) -> None:
     if settings.api_env != "production":
         return
     problems: list[str] = []
+    # The dev auth mode hands every request a single fixed demo user with no token
+    # check — shipping it in production is a full authentication bypass.
+    if settings.auth_mode == "dev":
+        problems.append("AUTH_MODE=dev is a development-only auth bypass (set AUTH_MODE=supabase)")
     if settings.auth_mode == "supabase" and settings.supabase_jwt_secret == _DEV_JWT_SECRET:
         problems.append("SUPABASE_JWT_SECRET is still the insecure development default")
     if not settings.fernet_key:
@@ -49,6 +55,20 @@ def _validate_production_settings(settings: Settings) -> None:
             "Refusing to start in production with insecure configuration: "
             + "; ".join(problems)
         )
+
+    # Providers still on the in-process mock won't break the app, but they aren't
+    # real — surface them loudly so a production deploy never silently fakes
+    # publishing, billing, or media generation.
+    logger = logging.getLogger("presence.startup")
+    if settings.meta_mode != "live":
+        logger.warning("META_MODE=%s — Facebook/Instagram run in MOCK mode", settings.meta_mode)
+    if settings.billing_provider != "stripe":
+        logger.warning(
+            "BILLING_PROVIDER=%s — billing runs in MOCK mode (upgrades are free)",
+            settings.billing_provider,
+        )
+    if settings.media_provider == "mock":
+        logger.warning("MEDIA_PROVIDER=mock — AI reels/video run in MOCK mode")
 
 
 def create_app() -> FastAPI:

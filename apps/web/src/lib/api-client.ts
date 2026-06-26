@@ -142,11 +142,6 @@ export const api = {
     }),
   listSocialAccounts: (brandId: string) =>
     call<SocialAccount[]>(`/api/social-accounts?brand_id=${brandId}`),
-  connectMock: (brandId: string) =>
-    call<SocialAccount[]>("/api/integrations/meta/connect-mock", {
-      method: "POST",
-      body: JSON.stringify({ brand_id: brandId }),
-    }),
   startOAuth: (brandId: string) =>
     call<{ authorize_url: string }>(
       `/api/integrations/meta/oauth/start?brand_id=${brandId}`,
