@@ -74,7 +74,7 @@ async def generate_ideas(brand: Brand, prompt: str, count: int = 7) -> list[Gene
         '"hashtags": [str], "suggested_time"} — exactly N items.'
     )
     user = f"{_voice_hint(brand)}\nIdea/topic: {prompt}\nN = {count}"
-    result = get_llm_provider().generate(system, [Message(role="user", content=user)])
+    result = await get_llm_provider().agenerate(system, [Message(role="user", content=user)])
     try:
         raw = json.loads(re.search(r"\[.*\]", result.text, re.DOTALL).group(0))
         return [

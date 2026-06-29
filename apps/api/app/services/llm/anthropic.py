@@ -21,33 +21,46 @@ class ClaudeProvider:
         if not settings.anthropic_api_key:
             raise RuntimeError("ANTHROPIC_API_KEY is required for the anthropic provider")
 
-        # Imported here so the SDK is only a hard dependency when used.
-        from anthropic import Anthropic
-
-        self._client = Anthropic(api_key=settings.anthropic_api_key, timeout=60.0, max_retries=2)
+        self._api_key = settings.anthropic_api_key
         self.model = settings.llm_model
         self.temperature = settings.llm_temperature
         self.max_tokens = settings.llm_max_tokens
+        # Clients are created lazily so importing/instantiating the provider never
+        # opens an httpx connection until a call is actually made.
+        self._client: Any = None
+        self._aclient: Any = None
 
-    def generate(
-        self,
-        system: str,
-        messages: list[Message],
-        tools: list[dict[str, Any]] | None = None,
-    ) -> LLMResult:
-        api_messages = [{"role": m.role, "content": m.content} for m in messages]
+    def _sync_client(self) -> Any:
+        if self._client is None:
+            # Imported here so the SDK is only a hard dependency when used.
+            from anthropic import Anthropic
+
+            self._client = Anthropic(api_key=self._api_key, timeout=60.0, max_retries=2)
+        return self._client
+
+    def _async_client(self) -> Any:
+        if self._aclient is None:
+            from anthropic import AsyncAnthropic
+
+            self._aclient = AsyncAnthropic(api_key=self._api_key, timeout=60.0, max_retries=2)
+        return self._aclient
+
+    def _build_kwargs(
+        self, system: str, messages: list[Message], tools: list[dict[str, Any]] | None
+    ) -> dict[str, Any]:
         kwargs: dict[str, Any] = {
             "model": self.model,
             "max_tokens": self.max_tokens,
             "temperature": self.temperature,
             "system": system,
-            "messages": api_messages,
+            "messages": [{"role": m.role, "content": m.content} for m in messages],
         }
         if tools:
             kwargs["tools"] = tools
+        return kwargs
 
-        resp = self._client.messages.create(**kwargs)
-
+    @staticmethod
+    def _parse(resp: Any) -> LLMResult:
         # Concatenate the text blocks of the response (ignore tool-use blocks).
         text = "".join(
             block.text for block in resp.content if getattr(block, "type", None) == "text"
@@ -64,3 +77,24 @@ class ClaudeProvider:
                 },
             },
         )
+
+    def generate(
+        self,
+        system: str,
+        messages: list[Message],
+        tools: list[dict[str, Any]] | None = None,
+    ) -> LLMResult:
+        resp = self._sync_client().messages.create(**self._build_kwargs(system, messages, tools))
+        return self._parse(resp)
+
+    async def agenerate(
+        self,
+        system: str,
+        messages: list[Message],
+        tools: list[dict[str, Any]] | None = None,
+    ) -> LLMResult:
+        # Real network round-trip on the async client — never blocks the loop.
+        resp = await self._async_client().messages.create(
+            **self._build_kwargs(system, messages, tools)
+        )
+        return self._parse(resp)

@@ -72,10 +72,10 @@ ANTHROPIC_API_KEY=sk-ant-...
 LLM_MODEL=claude-sonnet-4-6        # or the current recommended model
 LLM_TEMPERATURE=0.7
 ```
-`ClaudeProvider` plugs into the existing `LLMProvider` interface — all mock AI
-(audit, content, replies, ad copy, video scripts) becomes real with no other
-change. (The provider's SDK call is the only thing to finish wiring — see
-`apps/api/app/services/llm/anthropic.py`.)
+`ClaudeProvider` (`apps/api/app/services/llm/anthropic.py`) plugs into the
+existing `LLMProvider` interface and is fully wired (async, non-blocking calls) —
+all mock AI (audit, content, replies, ad copy, video scripts) becomes real once
+the key is set, with no code change. Set `LLM_PROVIDER=anthropic` (or `auto`).
 
 ---
 
@@ -119,11 +119,13 @@ Credit grants per plan live in `services/billing.py` (`PLAN_CREDITS`).
 2. Copy the connection string, JWT secret, anon key, service-role key.
 3. Run migrations against it: `alembic upgrade head`.
 
-**Render (API + worker + Redis)** — `apps/api/render.yaml` is the blueprint.
-- Web service (uvicorn), Worker (celery), Redis (key-value). `preDeployCommand`
-  runs `alembic upgrade head`. Set all secrets (below).
+**Render (API + worker + beat + Redis)** — `apps/api/render.yaml` is the blueprint.
+- Web service, Celery **worker**, Celery **beat** scheduler (enqueues due jobs —
+  required for scheduled publishing/insights), and Redis (key-value).
+  `preDeployCommand` runs `alembic upgrade head`. The three app services share the
+  `presence-shared` env-var group; set all secrets there (below).
 
-**Netlify (web)** — `apps/web/netlify.toml` is configured for the Next.js plugin.
+**Netlify (web)** — the root `netlify.toml` (base `apps/web`) configures the Next.js plugin.
 - Set `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`,
   `NEXT_PUBLIC_API_BASE_URL` (your Render API URL).
 

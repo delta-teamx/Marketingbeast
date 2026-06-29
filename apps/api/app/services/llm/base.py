@@ -30,3 +30,13 @@ class LLMProvider(Protocol):
         tools: list[dict[str, Any]] | None = None,
     ) -> LLMResult:
         ...
+
+    async def agenerate(
+        self,
+        system: str,
+        messages: list[Message],
+        tools: list[dict[str, Any]] | None = None,
+    ) -> LLMResult:
+        """Non-blocking variant — used inside async request handlers so a real
+        provider's network round-trip never blocks the event loop."""
+        ...

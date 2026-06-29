@@ -46,3 +46,18 @@ services:
       redis:
         condition: service_healthy
     command: celery -A app.worker.celery_app.celery_app worker --loglevel=info
+
+  # The beat scheduler that enqueues due work (scheduled publishing, daily
+  # insights, render polling). Without it, nothing scheduled ever fires.
+  beat:
+    profiles: ["full"]
+    build:
+      context: ./apps/api
+    env_file:
+      - .env
+    environment:
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      redis:
+        condition: service_healthy
+    command: celery -A app.worker.celery_app.celery_app beat --loglevel=info

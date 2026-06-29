@@ -1,5 +1,61 @@
 # Render blueprint for the Presence API (Tier A).
 # Deploy: connect this repo in Render and point at apps/api/render.yaml.
+#
+# Three services share ONE env-var group so the web API, the Celery worker, and
+# the Celery beat scheduler always run with identical provider config. Without
+# this the worker — which runs scheduled publishing, insights ingestion, and
+# render polling — could silently fall back to mock while the web API is live.
+envVarGroups:
+  - name: presence-shared
+    envVars:
+      - key: API_ENV
+        value: production
+      # Provider mode flags. Start in mock; flip to live per GO_LIVE.md once the
+      # keys (and Meta App Review) are in place. We set LLM_PROVIDER explicitly
+      # to "mock" rather than "auto" so merely adding ANTHROPIC_API_KEY (e.g. to
+      # prepare for launch) does not silently start spending real credits.
+      - key: LLM_PROVIDER
+        value: mock
+      - key: META_MODE
+        value: mock
+      - key: META_GRAPH_VERSION
+        value: v21.0
+      - key: MEDIA_PROVIDER
+        value: mock
+      - key: BILLING_PROVIDER
+        value: mock
+      # Secrets — set these once in the Render dashboard; shared by all services.
+      - key: DATABASE_URL
+        sync: false # Supabase connection string (asyncpg)
+      - key: SUPABASE_JWT_SECRET
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: FERNET_KEY
+        sync: false # token encryption — generate once, keep stable
+      - key: WEB_APP_URL
+        sync: false # https://<netlify-site> — OAuth redirect + billing return URLs
+      - key: ANTHROPIC_API_KEY
+        sync: false # required when LLM_PROVIDER=anthropic/auto
+      - key: META_APP_ID
+        sync: false
+      - key: META_APP_SECRET
+        sync: false
+      - key: META_REDIRECT_URI
+        sync: false
+      - key: MEDIA_API_ID
+        sync: false
+      - key: MEDIA_API_KEY
+        sync: false
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+      - key: STRIPE_PRICE_GROWTH
+        sync: false
+      - key: STRIPE_PRICE_AGENCY
+        sync: false
+
 services:
   - type: web
     name: presence-api
@@ -10,20 +66,7 @@ services:
     # Run migrations before the server starts each deploy.
     preDeployCommand: alembic upgrade head
     envVars:
-      - key: API_ENV
-        value: production
-      - key: DATABASE_URL
-        sync: false # Supabase connection string (asyncpg) — set as a secret
-      - key: SUPABASE_JWT_SECRET
-        sync: false
-      - key: SUPABASE_URL
-        sync: false
-      - key: FERNET_KEY
-        sync: false
-      - key: ANTHROPIC_API_KEY
-        sync: false # Anthropic key — required for real AI (audit, content, replies)
-      - key: LLM_PROVIDER
-        value: auto # uses Claude when ANTHROPIC_API_KEY is set, else mock
+      - fromGroup: presence-shared
       - key: API_CORS_ORIGINS
         sync: false # e.g. https://your-netlify-app.netlify.app
       - key: REDIS_URL
@@ -32,6 +75,7 @@ services:
           name: presence-redis
           property: connectionString
 
+  # Celery worker — consumes and runs the queued/scheduled tasks.
   - type: worker
     name: presence-worker
     runtime: docker
@@ -39,12 +83,25 @@ services:
     dockerfilePath: ./Dockerfile
     dockerCommand: celery -A app.worker.celery_app.celery_app worker --loglevel=info
     envVars:
-      - key: DATABASE_URL
-        sync: false
-      - key: SUPABASE_JWT_SECRET
-        sync: false
-      - key: FERNET_KEY
-        sync: false
+      - fromGroup: presence-shared
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: presence-redis
+          property: connectionString
+
+  # Celery beat — the scheduler that ENQUEUES due work (publish-due every 60s,
+  # daily insights, render polling). Without this service nothing scheduled ever
+  # fires. Kept separate from the worker so the worker can scale without running
+  # multiple beat schedulers (which would double-enqueue).
+  - type: worker
+    name: presence-beat
+    runtime: docker
+    rootDir: apps/api
+    dockerfilePath: ./Dockerfile
+    dockerCommand: celery -A app.worker.celery_app.celery_app beat --loglevel=info
+    envVars:
+      - fromGroup: presence-shared
       - key: REDIS_URL
         fromService:
           type: keyvalue

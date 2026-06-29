@@ -178,7 +178,7 @@ async def _brief_and_plan(
             '"caption": str, "hashtags": [str]}]}. Exactly 7 plan items (one week).'
         )
         user = f"Business: {brand_name}\nNiche: {niche_category}\nKeywords: {', '.join(keywords)}"
-        result = get_llm_provider().generate(system, [Message(role="user", content=user)])
+        result = await get_llm_provider().agenerate(system, [Message(role="user", content=user)])
         try:
             data = json.loads(re.search(r"\{.*\}", result.text, re.DOTALL).group(0))
             return data["strategy_brief"], data["content_plan"]

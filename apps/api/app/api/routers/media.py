@@ -10,20 +10,25 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user, get_db, require_brand_access
 from app.core.security import AuthenticatedUser
+from app.models.content import ContentItem
 from app.models.media import MediaAsset, MediaJob
+from app.schemas.content import ContentItemOut
 from app.schemas.media import (
     CreditsOut,
     MediaAssetOut,
     MediaJobOut,
+    PublishReelIn,
     TopupIn,
     VideoGenerateIn,
 )
 from app.services.media import (
     InsufficientCredits,
+    RenderStartError,
     add_credits,
     generate_video,
     get_org_for_brand,
     poll_job,
+    publish_media_asset,
 )
 
 router = APIRouter(prefix="/api", tags=["media"])
@@ -74,6 +79,12 @@ async def generate(
         )
     except InsufficientCredits as exc:
         raise HTTPException(status_code=402, detail=str(exc)) from exc
+    except RenderStartError as exc:
+        # Credits were refunded inside the service; tell the client it's a
+        # provider problem (502), not a client error.
+        raise HTTPException(
+            status_code=502, detail=f"Video provider could not start the render: {exc}"
+        ) from exc
 
 
 @router.get("/brands/{brand_id}/media-jobs", response_model=list[MediaJobOut])
@@ -104,6 +115,26 @@ async def poll(
         raise HTTPException(status_code=404, detail="Job not found")
     await require_brand_access(job.brand_id, session=session, user=user)
     return await poll_job(session, job)
+
+
+@router.post("/media-assets/{asset_id}/publish", response_model=ContentItemOut)
+async def publish_asset(
+    asset_id: uuid.UUID,
+    payload: PublishReelIn,
+    user: AuthenticatedUser = Depends(get_current_user),
+    session: AsyncSession = Depends(get_db),
+) -> ContentItem:
+    asset = await session.get(MediaAsset, asset_id)
+    if asset is None:
+        raise HTTPException(status_code=404, detail="Media asset not found")
+    await require_brand_access(asset.brand_id, session=session, user=user)
+    return await publish_media_asset(
+        session,
+        asset=asset,
+        body=payload.body,
+        target_account_ids=payload.target_account_ids,
+        scheduled_time=payload.scheduled_time,
+    )
 
 
 @router.get("/brands/{brand_id}/media-assets", response_model=list[MediaAssetOut])

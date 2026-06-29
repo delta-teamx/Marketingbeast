@@ -63,7 +63,10 @@ class LiveStripeClient:
         event = stripe.Webhook.construct_event(
             payload, signature, self._s.stripe_webhook_secret
         )
-        return dict(event)
+        # to_dict_recursive() converts the nested StripeObjects (data.object,
+        # metadata, …) into plain dicts so the webhook handler's .get() chain is
+        # reliable across stripe SDK versions; dict(event) only copies the top level.
+        return event.to_dict_recursive()
 
 
 def get_billing_client() -> BillingClient:

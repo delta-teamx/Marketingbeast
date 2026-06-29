@@ -1,12 +1,19 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { MediaJob } from "@presence/shared";
+import type { MediaAsset, MediaJob, SocialAccount } from "@presence/shared";
 import { api } from "@/lib/api-client";
 
-export function MediaPanel({ brandId }: { brandId: string }) {
+export function MediaPanel({
+  brandId,
+  accounts = [],
+}: {
+  brandId: string;
+  accounts?: SocialAccount[];
+}) {
   const [credits, setCredits] = useState<number | null>(null);
   const [jobs, setJobs] = useState<MediaJob[]>([]);
+  const [assets, setAssets] = useState<MediaAsset[]>([]);
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -24,12 +31,14 @@ export function MediaPanel({ brandId }: { brandId: string }) {
   }
 
   const reload = async () => {
-    const [c, j] = await Promise.all([
+    const [c, j, a] = await Promise.all([
       api.getCredits(brandId),
       api.listMediaJobs(brandId),
+      api.listMediaAssets(brandId),
     ]);
     setCredits(c.credit_balance);
     setJobs(j);
+    setAssets(a);
   };
 
   useEffect(() => {
@@ -113,6 +122,32 @@ export function MediaPanel({ brandId }: { brandId: string }) {
                   Check status
                 </button>
               )}
+              {j.status === "ready" && (() => {
+                const asset = assets.find((a) => a.url === j.asset_url);
+                if (!asset) {
+                  // The job is ready but its asset hasn't shown up in the list
+                  // yet (brief sync lag) — show a clear waiting state, not a
+                  // silently missing button.
+                  return (
+                    <span className="text-xs text-white/50">Preparing reel…</span>
+                  );
+                }
+                return (
+                  <button
+                    disabled={busy || accounts.length === 0}
+                    onClick={() => run(async () => {
+                      await api.publishReel(asset.id, {
+                        body: j.prompt || j.script || "",
+                        target_account_ids: accounts.map((a) => a.id),
+                      });
+                      await reload();
+                    })}
+                    className="btn-primary rounded-lg px-3 py-1 text-xs disabled:opacity-50"
+                  >
+                    Publish as reel
+                  </button>
+                );
+              })()}
             </li>
           ))}
         </ul>

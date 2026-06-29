@@ -9,6 +9,8 @@ from __future__ import annotations
 
 import json
 import re
+import uuid
+from datetime import datetime
 
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -34,7 +36,15 @@ class InsufficientCredits(Exception):
     pass
 
 
-def _script_and_storyboard(brand: Brand, note: str, product_url: str | None) -> tuple[str, list]:
+class RenderStartError(Exception):
+    """The media provider failed to start a render (charged credits are refunded)."""
+
+    pass
+
+
+async def _script_and_storyboard(
+    brand: Brand, note: str, product_url: str | None
+) -> tuple[str, list]:
     settings = get_settings()
     subject = note.strip() or product_url or brand.name
 
@@ -45,7 +55,7 @@ def _script_and_storyboard(brand: Brand, note: str, product_url: str | None) -> 
             '{"script": str, "storyboard": [{"scene": str, "shot": str}]}.'
         )
         user = f"Brand: {brand.name}\nTopic: {subject}\nProduct URL: {product_url or 'n/a'}"
-        result = get_llm_provider().generate(system, [Message(role="user", content=user)])
+        result = await get_llm_provider().agenerate(system, [Message(role="user", content=user)])
         try:
             data = json.loads(re.search(r"\{.*\}", result.text, re.DOTALL).group(0))
             return data["script"], data.get("storyboard", [])
@@ -87,6 +97,19 @@ async def _charge_credits(
     await session.refresh(org)
 
 
+async def _refund_credits(
+    session: AsyncSession, org: Organization, amount: int, reason: str
+) -> None:
+    """Reverse a prior decrement (e.g. when the render never started)."""
+    await session.execute(
+        update(Organization)
+        .where(Organization.id == org.id)
+        .values(credit_balance=Organization.credit_balance + amount)
+    )
+    session.add(CreditLedger(org_id=org.id, delta=amount, reason=reason))
+    await session.refresh(org)
+
+
 async def generate_video(
     session: AsyncSession,
     *,
@@ -100,11 +123,19 @@ async def generate_video(
     cost = settings.video_cost_credits
     await _charge_credits(session, org, cost, f"video render: {note[:40] or brand.name}")
 
-    script, storyboard = _script_and_storyboard(brand, note, product_url)
+    script, storyboard = await _script_and_storyboard(brand, note, product_url)
     provider = get_media_provider()
-    external = provider.start_render(
-        RenderBrief(script=script, storyboard=storyboard, product_url=product_url, style=style)
-    )
+    try:
+        external = provider.start_render(
+            RenderBrief(script=script, storyboard=storyboard, product_url=product_url, style=style)
+        )
+    except Exception as exc:
+        # The render never started — refund the credits we just charged so the
+        # user isn't billed for nothing, and surface a clean error (not a 500).
+        await _refund_credits(session, org, cost, f"refund: render failed to start ({brand.name})")
+        await session.commit()
+        logger.warning("media render failed to start, refunded %d credits: %s", cost, exc)
+        raise RenderStartError(str(exc)) from exc
 
     job = MediaJob(
         brand_id=brand.id,
@@ -172,3 +203,34 @@ async def add_credits(
 
 async def get_org_for_brand(session: AsyncSession, brand: Brand) -> Organization:
     return await session.get(Organization, brand.org_id)
+
+
+async def publish_media_asset(
+    session: AsyncSession,
+    *,
+    asset: MediaAsset,
+    body: str,
+    target_account_ids: list[uuid.UUID],
+    scheduled_time: datetime | None = None,
+):
+    """Turn a generated MediaAsset into a reel ContentItem and publish/schedule it.
+
+    Publishes immediately when no `scheduled_time` is given; otherwise leaves the
+    item scheduled for the due-poller. Returns the resulting ContentItem.
+    """
+    # Imported here to avoid a circular import (publishing → media services).
+    from app.models.content import ContentType
+    from app.services.publishing import create_content_item, publish_content_item
+
+    item = await create_content_item(
+        session,
+        brand_id=asset.brand_id,
+        body=body,
+        content_type=ContentType.reel,
+        media_urls=[asset.url],
+        target_account_ids=target_account_ids,
+        scheduled_time=scheduled_time,
+    )
+    if scheduled_time is None:
+        return await publish_content_item(session, item.id)
+    return item

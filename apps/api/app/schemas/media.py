@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import uuid
+from datetime import datetime
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -40,6 +41,12 @@ class MediaAssetOut(BaseModel):
     url: str
     source: str
     provider: str | None
+
+
+class PublishReelIn(BaseModel):
+    body: str = Field(default="", max_length=5000)
+    target_account_ids: list[uuid.UUID] = Field(min_length=1)
+    scheduled_time: datetime | None = None
 
 
 class CreditsOut(BaseModel):

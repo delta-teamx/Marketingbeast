@@ -76,6 +76,12 @@ export function Workspace() {
         const [orgList, pending] = await Promise.all([api.listOrgs(), api.myInvites()]);
         setOrgs(orgList);
         setInvites(pending);
+        if (!orgList[0]) {
+          // me() provisions a personal org, so this is only reachable if that
+          // raced or failed — fail with a clear, recoverable message.
+          setError("We couldn't finish setting up your workspace. Please refresh to try again.");
+          return;
+        }
         setOrgId(orgList[0].id);
         await selectOrgBrands(orgList[0].id);
       } catch (e) {
@@ -207,26 +213,42 @@ export function Workspace() {
           />
         </section>
       ) : (
-        <>
-          <nav className="flex flex-wrap gap-1 border-b border-white/10 pb-px">
-            {TABS.map((t) => (
-              <button
-                key={t.key}
-                onClick={() => setTab(t.key)}
-                className={`rounded-t-lg px-4 py-2 text-sm transition ${
-                  tab === t.key
-                    ? "border-b-2 border-[#6d5efc] font-medium text-white"
-                    : "text-white/55 hover:text-white"
-                }`}
+        <div className="flex flex-col gap-6 md:flex-row md:items-start">
+          {/* Sidebar navigation */}
+          <aside className="md:w-56 md:shrink-0">
+            <nav className="card flex gap-1 overflow-x-auto p-2 md:flex-col">
+              {TABS.map((t) => (
+                <button
+                  key={t.key}
+                  onClick={() => setTab(t.key)}
+                  className={`flex shrink-0 items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition ${
+                    tab === t.key
+                      ? "bg-[#6d5efc] font-medium text-white"
+                      : "text-white/60 hover:bg-white/5 hover:text-white"
+                  }`}
+                >
+                  <NavIcon name={t.key} />
+                  <span>{t.label}</span>
+                </button>
+              ))}
+              <a
+                href="/settings"
+                className="flex shrink-0 items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-white/60 transition hover:bg-white/5 hover:text-white"
               >
-                {t.label}
-              </button>
-            ))}
-          </nav>
+                <NavIcon name="settings" />
+                <span>Settings</span>
+              </a>
+            </nav>
+          </aside>
 
-          <div className="flex flex-col gap-6">
+          <main className="flex min-w-0 flex-1 flex-col gap-6">
             {tab === "overview" && (
               <>
+                <AiSuggestions
+                  report={audit}
+                  onRun={() => run(async () => { await api.runAudit(brand.id); await refreshBrandData(brand.id); })}
+                  goTo={setTab}
+                />
                 <GrowthRoadmap
                   hasAudit={!!audit}
                   accountsConnected={accounts.length > 0}
@@ -248,15 +270,10 @@ export function Workspace() {
                 <Connections
                   brand={brand}
                   accounts={accounts}
-                  onConnect={(mode) =>
+                  onConnect={() =>
                     run(async () => {
-                      if (mode === "mock") {
-                        await api.connectMock(brand.id);
-                        await refreshBrandData(brand.id);
-                      } else {
-                        const { authorize_url } = await api.startOAuth(brand.id);
-                        window.location.href = authorize_url;
-                      }
+                      const { authorize_url } = await api.startOAuth(brand.id);
+                      window.location.href = authorize_url;
                     })
                   }
                 />
@@ -281,7 +298,7 @@ export function Workspace() {
               </>
             )}
 
-            {tab === "video" && <MediaPanel brandId={brand.id} />}
+            {tab === "video" && <MediaPanel brandId={brand.id} accounts={accounts} />}
             {tab === "analytics" && <AnalyticsPanel brandId={brand.id} />}
             {tab === "ads" && <AdsPanel brandId={brand.id} />}
             {tab === "inbox" && <InboxPanel brandId={brand.id} />}
@@ -302,8 +319,8 @@ export function Workspace() {
             )}
 
             {tab === "team" && orgId && <AgencyPanel orgId={orgId} />}
-          </div>
-        </>
+          </main>
+        </div>
       )}
     </div>
   );
@@ -322,13 +339,152 @@ type TabKey =
 const TABS: { key: TabKey; label: string }[] = [
   { key: "overview", label: "Overview" },
   { key: "content", label: "Content" },
-  { key: "video", label: "AI Video" },
+  { key: "video", label: "Reels & Video" },
   { key: "analytics", label: "Analytics" },
-  { key: "ads", label: "Ads" },
-  { key: "inbox", label: "Inbox" },
+  { key: "ads", label: "Ad Manager" },
+  { key: "inbox", label: "Inbox & Leads" },
   { key: "groups", label: "Lead Groups" },
   { key: "team", label: "Team" },
 ];
+
+// Compact inline icons for the sidebar (no icon dependency). 18px, stroke-based.
+function NavIcon({ name }: { name: TabKey | "settings" }) {
+  const paths: Record<string, string> = {
+    overview: "M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z",
+    content: "M4 4h16v12H4zM8 20h8",
+    video: "M4 5h12v14H4zM16 9l4-2v10l-4-2",
+    analytics: "M4 20V10M10 20V4M16 20v-7M22 20H2",
+    ads: "M3 11l18-7v16L3 13zM3 11v2",
+    inbox: "M4 4h16v16H4zM4 13h4l2 3h4l2-3h4",
+    groups: "M9 11a3 3 0 100-6 3 3 0 000 6zM3 20a6 6 0 0112 0M17 11a3 3 0 100-6M16 20a6 6 0 016 0",
+    team: "M16 4a4 4 0 010 8M8 4a4 4 0 100 8 4 4 0 000-8zM2 21a6 6 0 0112 0M16 13a6 6 0 016 8",
+    settings:
+      "M12 15a3 3 0 100-6 3 3 0 000 6zM19 12a7 7 0 00-.1-1l2-1.5-2-3.4-2.3 1a7 7 0 00-1.7-1L14.5 3h-5l-.4 2.6a7 7 0 00-1.7 1l-2.3-1-2 3.4 2 1.5a7 7 0 000 2l-2 1.5 2 3.4 2.3-1a7 7 0 001.7 1l.4 2.6h5l.4-2.6a7 7 0 001.7-1l2.3 1 2-3.4-2-1.5a7 7 0 00.1-1z",
+  };
+  return (
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="shrink-0"
+      aria-hidden="true"
+    >
+      <path d={paths[name]} />
+    </svg>
+  );
+}
+
+const SECTION_TIP: Record<string, string> = {
+  profile: "Fill out your bio, profile photo, link, and contact info on every platform.",
+  breadth: "You're not active on enough platforms — connect and post to Facebook + Instagram.",
+  consistency: "Post on a steady cadence. Generate a week of content and schedule it.",
+  engagement: "Engagement is low — reply in the inbox and post more conversation-starting content.",
+  quality: "Lift content quality — use the AI content engine and on-brand reels.",
+};
+
+// Audit-driven AI suggestions: surface WHERE the brand is losing ground and what
+// to do about it, ranked by the weakest scoring sections.
+function AiSuggestions({
+  report,
+  onRun,
+  goTo,
+}: {
+  report: AuditReport | null;
+  onRun: () => void;
+  goTo: (tab: TabKey) => void;
+}) {
+  if (!report) {
+    return (
+      <section className="card flex flex-col gap-3 p-5">
+        <div className="flex items-center gap-2">
+          <span className="text-lg">✨</span>
+          <h2 className="text-lg font-medium">AI suggestions</h2>
+        </div>
+        <p className="text-sm text-white/60">
+          Run a Presence audit and the AI will pinpoint exactly where you’re
+          losing reach and followers — and what to fix first.
+        </p>
+        <div>
+          <button onClick={onRun} className="btn-primary rounded-lg px-4 py-2 text-sm font-medium">
+            Run audit
+          </button>
+        </div>
+      </section>
+    );
+  }
+
+  // Weakest 3 sections = where the brand is losing ground.
+  const weak = [...report.sections].sort((a, b) => a.score - b.score).slice(0, 3);
+  const ctaFor = (key: string): { label: string; tab: TabKey } => {
+    if (key === "engagement") return { label: "Open inbox", tab: "inbox" };
+    if (key === "breadth") return { label: "Connect accounts", tab: "overview" };
+    if (key === "quality" || key === "consistency") return { label: "Generate content", tab: "content" };
+    return { label: "Generate content", tab: "content" };
+  };
+
+  return (
+    <section className="card flex flex-col gap-4 p-5">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <span className="text-lg">✨</span>
+          <h2 className="text-lg font-medium">AI suggestions</h2>
+          <span className={`text-sm ${gradeColor(report.overall_grade)}`}>
+            Grade {report.overall_grade} · {report.overall_score}/100
+          </span>
+        </div>
+        <button onClick={onRun} className="btn-ghost rounded-lg px-3 py-1.5 text-xs">
+          Re-run audit
+        </button>
+      </div>
+
+      <p className="text-xs uppercase tracking-wider text-white/40">Where you’re losing ground</p>
+      <div className="grid gap-3 sm:grid-cols-3">
+        {weak.map((s) => {
+          const cta = ctaFor(s.key);
+          return (
+            <div
+              key={s.key}
+              className="flex flex-col gap-2 rounded-lg border border-white/10 bg-white/[0.03] p-3"
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium">{s.label}</span>
+                <span className={`text-sm font-semibold ${scoreColor(s.score)}`}>{s.score}</span>
+              </div>
+              <p className="text-xs text-white/55">
+                {s.notes || SECTION_TIP[s.key] || "Room to improve here."}
+              </p>
+              <button
+                onClick={() => goTo(cta.tab)}
+                className="mt-auto self-start text-xs font-medium text-[#9d92ff] hover:underline"
+              >
+                {cta.label} →
+              </button>
+            </div>
+          );
+        })}
+      </div>
+
+      {report.recommendations.length > 0 && (
+        <div className="flex flex-col gap-1.5">
+          <p className="text-xs uppercase tracking-wider text-white/40">Do this next</p>
+          <ul className="flex flex-col gap-1.5 text-sm text-white/70">
+            {report.recommendations.slice(0, 5).map((r, i) => (
+              <li key={i} className="flex gap-2">
+                <span className="text-[#9d92ff]">→</span>
+                <span>{r}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </section>
+  );
+}
 
 function GrowthRoadmap({
   hasAudit,
@@ -454,7 +610,7 @@ function Connections({
 }: {
   brand: Brand;
   accounts: SocialAccount[];
-  onConnect: (mode: "oauth" | "mock") => void;
+  onConnect: () => void;
 }) {
   return (
     <section className="flex flex-col gap-3">
@@ -475,16 +631,10 @@ function Connections({
       )}
       <div className="flex gap-2">
         <button
-          onClick={() => onConnect("oauth")}
-          className="rounded-md border border-white/20 px-4 py-2 text-sm hover:bg-white/5"
+          onClick={() => onConnect()}
+          className="btn-primary rounded-lg px-4 py-2 text-sm font-medium"
         >
           Connect Facebook &amp; Instagram
-        </button>
-        <button
-          onClick={() => onConnect("mock")}
-          className="rounded-md border border-white/10 px-4 py-2 text-sm text-white/60 hover:bg-white/5"
-        >
-          Dev: connect mock accounts
         </button>
       </div>
     </section>
@@ -500,17 +650,18 @@ function Composer({
     body: string;
     target_account_ids: string[];
     scheduled_time?: string | null;
-  }) => void;
+  }) => void | Promise<void>;
 }) {
   const [body, setBody] = useState("");
   const [targets, setTargets] = useState<string[]>([]);
   const [scheduledAt, setScheduledAt] = useState("");
+  const [busy, setBusy] = useState(false);
 
   function toggle(id: string) {
     setTargets((t) => (t.includes(id) ? t.filter((x) => x !== id) : [...t, id]));
   }
 
-  const disabled = !body || targets.length === 0;
+  const disabled = !body || targets.length === 0 || busy;
 
   return (
     <section className="flex flex-col gap-3">
@@ -548,21 +699,26 @@ function Composer({
         </label>
         <button
           disabled={disabled}
-          onClick={() => {
-            onCreate({
-              body,
-              target_account_ids: targets,
-              scheduled_time: scheduledAt
-                ? new Date(scheduledAt).toISOString()
-                : null,
-            });
-            setBody("");
-            setTargets([]);
-            setScheduledAt("");
+          onClick={async () => {
+            setBusy(true);
+            try {
+              await onCreate({
+                body,
+                target_account_ids: targets,
+                scheduled_time: scheduledAt
+                  ? new Date(scheduledAt).toISOString()
+                  : null,
+              });
+              setBody("");
+              setTargets([]);
+              setScheduledAt("");
+            } finally {
+              setBusy(false);
+            }
           }}
           className="rounded-md bg-white px-4 py-2 font-medium text-black disabled:opacity-40"
         >
-          {scheduledAt ? "Schedule" : "Save draft"}
+          {busy ? "Saving…" : scheduledAt ? "Schedule" : "Save draft"}
         </button>
       </div>
     </section>
@@ -800,6 +956,12 @@ function SuggestionCard({
 function gradeColor(grade: string): string {
   if (grade === "A" || grade === "B") return "text-emerald-400";
   if (grade === "C" || grade === "D") return "text-amber-400";
+  return "text-red-400";
+}
+
+function scoreColor(score: number): string {
+  if (score >= 70) return "text-emerald-400";
+  if (score >= 40) return "text-amber-400";
   return "text-red-400";
 }
 

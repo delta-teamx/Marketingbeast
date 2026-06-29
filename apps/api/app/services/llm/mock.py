@@ -22,3 +22,12 @@ class MockLLMProvider:
             model=self.model,
             raw={"system": system, "tools": tools or []},
         )
+
+    async def agenerate(
+        self,
+        system: str,
+        messages: list[Message],
+        tools: list[dict[str, Any]] | None = None,
+    ) -> LLMResult:
+        # Mock generation is instant and pure-CPU — no thread offload needed.
+        return self.generate(system, messages, tools)

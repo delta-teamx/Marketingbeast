@@ -47,11 +47,38 @@ function sb(): SupabaseClient | null {
   return (_supabase ??= createClient());
 }
 
+/** Turn an error response into a short, user-facing message (raw detail → console). */
+function friendlyError(status: number, raw: string): string {
+  // FastAPI returns {"detail": "..."} for handled 4xx — those are meaningful to
+  // the user (e.g. "Need 10 credits", "Brand limit reached"), so surface them.
+  try {
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed.detail === "string") return parsed.detail;
+  } catch {
+    // Not JSON (e.g. an HTML 502 from a cold-starting host) — fall through.
+  }
+  if (status === 401) return "Your session expired. Please sign in again.";
+  if (status === 403) return "You don't have access to do that.";
+  if (status >= 500)
+    return "The server hit a problem. It may be waking up — please try again in a moment.";
+  return `Something went wrong (${status}). Please try again.`;
+}
+
 async function call<T>(path: string, init?: RequestInit): Promise<T> {
-  const resp = await apiFetch(sb(), path, init);
+  let resp: Response;
+  try {
+    resp = await apiFetch(sb(), path, init);
+  } catch (e) {
+    // Network failure / DNS / CORS / connection refused — never show the raw error.
+    console.error(`API request to ${path} failed to reach the server:`, e);
+    throw new Error(
+      "Couldn't reach the server. Please check your connection and try again.",
+    );
+  }
   if (!resp.ok) {
-    const detail = await resp.text();
-    throw new Error(`API ${resp.status}: ${detail}`);
+    const raw = await resp.text();
+    console.error(`API ${resp.status} ${path}: ${raw}`);
+    throw new Error(friendlyError(resp.status, raw));
   }
   return (await resp.json()) as T;
 }
@@ -115,11 +142,6 @@ export const api = {
     }),
   listSocialAccounts: (brandId: string) =>
     call<SocialAccount[]>(`/api/social-accounts?brand_id=${brandId}`),
-  connectMock: (brandId: string) =>
-    call<SocialAccount[]>("/api/integrations/meta/connect-mock", {
-      method: "POST",
-      body: JSON.stringify({ brand_id: brandId }),
-    }),
   startOAuth: (brandId: string) =>
     call<{ authorize_url: string }>(
       `/api/integrations/meta/oauth/start?brand_id=${brandId}`,
@@ -169,6 +191,14 @@ export const api = {
     call<MediaJob>(`/api/media-jobs/${id}/poll`, { method: "POST" }),
   listMediaAssets: (brandId: string) =>
     call<MediaAsset[]>(`/api/brands/${brandId}/media-assets`),
+  publishReel: (
+    assetId: string,
+    input: { body: string; target_account_ids: string[]; scheduled_time?: string | null },
+  ) =>
+    call<ContentItem>(`/api/media-assets/${assetId}/publish`, {
+      method: "POST",
+      body: JSON.stringify(input),
+    }),
 
   // --- Ads ---
   connectAdAccount: (brandId: string) =>
