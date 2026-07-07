@@ -774,14 +774,25 @@ function ContentList({
               key={item.id}
               className="flex items-start justify-between gap-4 rounded-md border border-white/10 p-3"
             >
-              <div className="flex flex-col gap-1">
-                <span className="text-sm">{item.body}</span>
-                <span className="text-xs text-white/50">
-                  {item.content_type} · {item.status}
-                  {item.approved ? " · ✓ approved" : ""}
-                  {item.suggested_time ? ` · best ~${item.suggested_time}` : ""}
-                  {` · ${item.targets.length} target(s)`}
-                </span>
+              <div className="flex min-w-0 items-start gap-3">
+                {item.media_urls?.[0] && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={item.media_urls[0]}
+                    alt="AI-generated post image"
+                    className="h-16 w-16 shrink-0 rounded-md object-cover"
+                  />
+                )}
+                <div className="flex min-w-0 flex-col gap-1">
+                  <span className="text-sm">{item.body}</span>
+                  <span className="text-xs text-white/50">
+                    {item.content_type} · {item.status}
+                    {item.media_urls?.[0] ? " · 🖼 image" : ""}
+                    {item.approved ? " · ✓ approved" : ""}
+                    {item.suggested_time ? ` · best ~${item.suggested_time}` : ""}
+                    {` · ${item.targets.length} target(s)`}
+                  </span>
+                </div>
               </div>
               <div className="flex shrink-0 flex-col gap-1">
                 {!item.approved && (

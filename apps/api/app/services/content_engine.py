@@ -7,6 +7,7 @@ data exists). Mock mode is deterministic so it runs with no key/network.
 
 from __future__ import annotations
 
+import asyncio
 import json
 import re
 import uuid
@@ -20,6 +21,7 @@ from app.core.config import get_settings
 from app.core.logging import get_logger
 from app.models.brand import Brand
 from app.models.content import ContentItem, ContentStatus, ContentType
+from app.services.image_provider import ImageBrief, get_image_provider
 from app.services.llm import get_llm_provider
 from app.services.llm.base import Message
 from app.services.verticals import vertical_profile
@@ -44,6 +46,9 @@ class GeneratedIdea:
     content_type: ContentType = ContentType.post
     hashtags: list[str] = field(default_factory=list)
     suggested_time: str = ""
+    # Art-direction prompt for the image generator (Claude writes this; the image
+    # provider renders it). Empty → no image is attached.
+    image_prompt: str = ""
 
 
 def best_times() -> dict[str, list[str]]:
@@ -69,9 +74,12 @@ async def generate_ideas(brand: Brand, prompt: str, count: int = 7) -> list[Gene
         return _mock_ideas(brand, prompt, count)
 
     system = (
-        "You are a brand's social copywriter. Match the brand voice. Respond ONLY "
-        'with a JSON array of {"body", "content_type" (post|reel|story), '
-        '"hashtags": [str], "suggested_time"} — exactly N items.'
+        "You are a brand's social copywriter and art director. Match the brand "
+        "voice. Respond ONLY with a JSON array of "
+        '{"body", "content_type" (post|reel|story), "hashtags": [str], '
+        '"suggested_time", "image_prompt"} — exactly N items. "image_prompt" is a '
+        "vivid, concrete visual scene to feed an image generator (describe subject, "
+        "setting, lighting, mood, style); no text, words, or logos in the image."
     )
     user = f"{_voice_hint(brand)}\nIdea/topic: {prompt}\nN = {count}"
     result = await get_llm_provider().agenerate(system, [Message(role="user", content=user)])
@@ -83,6 +91,7 @@ async def generate_ideas(brand: Brand, prompt: str, count: int = 7) -> list[Gene
                 content_type=ContentType(x.get("content_type", "post")),
                 hashtags=x.get("hashtags", []),
                 suggested_time=x.get("suggested_time", ""),
+                image_prompt=x.get("image_prompt", ""),
             )
             for x in raw[:count]
         ]
@@ -102,12 +111,17 @@ def _mock_ideas(brand: Brand, prompt: str, count: int) -> list[GeneratedIdea]:
     for i in range(count):
         angle = angles[i % len(angles)]
         day = days[i % len(days)]
+        keyword = kw[i % len(kw)]
         ideas.append(
             GeneratedIdea(
-                body=f"{angle}: {prompt.strip() or brand.name} — {kw[i % len(kw)]} edition.",
+                body=f"{angle}: {prompt.strip() or brand.name} — {keyword} edition.",
                 content_type=ContentType.post,
                 hashtags=[signature_tag, keyword_tag],
                 suggested_time=BEST_TIMES[day][0],
+                image_prompt=(
+                    f"{angle} scene for {brand.name}, featuring {keyword}; "
+                    "bright natural lighting, authentic UGC style, no text or logos."
+                ),
             )
         )
     return ideas
@@ -132,11 +146,31 @@ def repurpose(body: str) -> list[GeneratedIdea]:
     ]
 
 
+async def _render_image(idea: GeneratedIdea, brand_name: str) -> str | None:
+    """Render a post image for an idea; never raise — a failed image must not
+    block content creation. Reels get video elsewhere, so skip them here."""
+    if not idea.image_prompt or idea.content_type == ContentType.reel:
+        return None
+    try:
+        return await get_image_provider().generate(
+            ImageBrief(prompt=idea.image_prompt, brand_name=brand_name)
+        )
+    except Exception as exc:  # noqa: BLE001 - image gen is best-effort
+        logger.warning("post-image generation failed, publishing text-only: %s", exc)
+        return None
+
+
 async def persist_ideas(
     session: AsyncSession, *, brand_id: uuid.UUID, ideas: list[GeneratedIdea]
 ) -> list[ContentItem]:
+    brand = await session.get(Brand, brand_id)
+    brand_name = brand.name if brand else ""
+    # Render every idea's image concurrently (mock is instant; real providers run
+    # in parallel rather than serially).
+    images = await asyncio.gather(*(_render_image(idea, brand_name) for idea in ideas))
+
     ids: list[uuid.UUID] = []
-    for idea in ideas:
+    for idea, image_url in zip(ideas, images, strict=True):
         tags = " ".join(idea.hashtags)
         body = f"{idea.body}\n\n{tags}".strip() if tags else idea.body
         item = ContentItem(
@@ -146,6 +180,7 @@ async def persist_ideas(
             status=ContentStatus.draft,
             hashtags=idea.hashtags or None,
             suggested_time=idea.suggested_time or None,
+            media_urls=[image_url] if image_url else None,
         )
         session.add(item)
         await session.flush()
