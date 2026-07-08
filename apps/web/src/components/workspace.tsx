@@ -282,6 +282,7 @@ export function Workspace() {
 
             {tab === "content" && (
               <>
+                <WeeklyPlanner items={content} />
                 <GenerateWeek
                   onGenerate={(prompt) => run(async () => { await api.generateContent(brand.id, prompt); await refreshBrandData(brand.id); })}
                 />
@@ -755,6 +756,136 @@ function GenerateWeek({ onGenerate }: { onGenerate: (prompt: string) => void }) 
           Generate a week
         </button>
       </div>
+    </section>
+  );
+}
+
+// A weekly calendar view of scheduled content — see the whole week's plan at a
+// glance instead of a lone date field.
+function WeeklyPlanner({ items }: { items: ContentItem[] }) {
+  const [weekOffset, setWeekOffset] = useState(0);
+
+  const DAY = 86_400_000;
+  const now = new Date();
+  // Monday of the target week (local time).
+  const monday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const dow = (monday.getDay() + 6) % 7; // 0 = Monday
+  monday.setDate(monday.getDate() - dow + weekOffset * 7);
+
+  const days = Array.from({ length: 7 }, (_, i) => new Date(monday.getTime() + i * DAY));
+  const sameDay = (a: Date, b: Date) =>
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate();
+
+  const scheduled = items.filter((it) => it.scheduled_time);
+  const unscheduledDrafts = items.filter(
+    (it) => !it.scheduled_time && it.status === "draft",
+  );
+
+  const forDay = (d: Date) =>
+    scheduled
+      .filter((it) => sameDay(new Date(it.scheduled_time as string), d))
+      .sort(
+        (a, b) =>
+          new Date(a.scheduled_time as string).getTime() -
+          new Date(b.scheduled_time as string).getTime(),
+      );
+
+  const DOW = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+  const monthDay = (d: Date) =>
+    d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  const time = (iso: string) =>
+    new Date(iso).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+
+  const rangeLabel = `${monthDay(days[0])} – ${monthDay(days[6])}`;
+  const statusDot: Record<string, string> = {
+    draft: "bg-white/40",
+    scheduled: "bg-amber-400",
+    publishing: "bg-blue-400",
+    published: "bg-emerald-400",
+    failed: "bg-red-400",
+  };
+
+  return (
+    <section className="flex flex-col gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <h2 className="text-xl font-medium">Weekly planner</h2>
+          <span className="text-sm text-white/50">{rangeLabel}</span>
+        </div>
+        <div className="flex items-center gap-1 text-sm">
+          <button
+            onClick={() => setWeekOffset((w) => w - 1)}
+            className="btn-ghost rounded-md px-2.5 py-1"
+            aria-label="Previous week"
+          >
+            ‹
+          </button>
+          <button
+            onClick={() => setWeekOffset(0)}
+            className="btn-ghost rounded-md px-3 py-1 text-xs"
+          >
+            Today
+          </button>
+          <button
+            onClick={() => setWeekOffset((w) => w + 1)}
+            className="btn-ghost rounded-md px-2.5 py-1"
+            aria-label="Next week"
+          >
+            ›
+          </button>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-7">
+        {days.map((d, i) => {
+          const dayItems = forDay(d);
+          const isToday = sameDay(d, now);
+          return (
+            <div
+              key={i}
+              className={`flex min-h-28 flex-col gap-1.5 rounded-lg border p-2 ${
+                isToday ? "border-[#6d5efc]/60 bg-[#6d5efc]/5" : "border-white/10 bg-white/[0.02]"
+              }`}
+            >
+              <div className="flex items-baseline justify-between">
+                <span className={`text-xs font-medium ${isToday ? "text-[#9d92ff]" : "text-white/70"}`}>
+                  {DOW[i]}
+                </span>
+                <span className="text-[10px] text-white/40">{d.getDate()}</span>
+              </div>
+              {dayItems.length === 0 ? (
+                <span className="text-[10px] text-white/25">—</span>
+              ) : (
+                dayItems.map((it) => (
+                  <div
+                    key={it.id}
+                    title={it.body}
+                    className="flex flex-col gap-0.5 rounded-md bg-white/[0.04] p-1.5"
+                  >
+                    <div className="flex items-center gap-1">
+                      <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${statusDot[it.status] ?? "bg-white/40"}`} />
+                      <span className="text-[10px] text-white/50">
+                        {time(it.scheduled_time as string)}
+                      </span>
+                      {it.media_urls?.[0] && <span className="text-[10px]">🖼</span>}
+                    </div>
+                    <span className="line-clamp-2 text-[11px] text-white/80">{it.body}</span>
+                  </div>
+                ))
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {unscheduledDrafts.length > 0 && (
+        <p className="text-xs text-white/50">
+          {unscheduledDrafts.length} unscheduled draft{unscheduledDrafts.length > 1 ? "s" : ""} —
+          set a schedule time when composing to place them on the planner.
+        </p>
+      )}
     </section>
   );
 }
