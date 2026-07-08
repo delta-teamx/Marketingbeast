@@ -98,18 +98,12 @@ export function OnboardingForm({
 
   const field = "rounded-lg border border-white/15 bg-transparent px-3 py-2 text-sm";
 
-  const Wrapper = embedded
-    ? ({ children }: { children: React.ReactNode }) => (
-        <div className="flex flex-col gap-6">{children}</div>
-      )
-    : ({ children }: { children: React.ReactNode }) => (
-        <main className="mx-auto flex min-h-screen max-w-xl flex-col justify-center gap-6 px-6 py-12">
-          {children}
-        </main>
-      );
-
-  return (
-    <Wrapper>
+  // NOTE: do not define the wrapper as a component inside render — a new
+  // component identity each render remounts the whole form and drops input
+  // focus on every keystroke (on mobile that makes the spacebar scroll the page
+  // instead of typing a space). Build stable content and wrap it conditionally.
+  const content = (
+    <>
       <div>
         <h1 className="text-3xl font-bold">Tell us about your business</h1>
         <p className="mt-2 text-sm text-white/60">
@@ -266,6 +260,14 @@ export function OnboardingForm({
           {loading ? "Setting up…" : "Create my workspace →"}
         </button>
       </form>
-    </Wrapper>
+    </>
+  );
+
+  return embedded ? (
+    <div className="flex flex-col gap-6">{content}</div>
+  ) : (
+    <main className="mx-auto flex min-h-screen max-w-xl flex-col justify-center gap-6 px-6 py-12">
+      {content}
+    </main>
   );
 }

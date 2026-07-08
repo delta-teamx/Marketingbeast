@@ -19,6 +19,7 @@ from pydantic import BaseModel, Field, ValidationError
 
 from app.core.config import get_settings
 from app.core.logging import get_logger
+from app.services.group_discovery import DiscoveredGroup, discover_groups
 from app.services.llm import get_llm_provider
 from app.services.llm.base import Message
 
@@ -39,6 +40,8 @@ class NicheProfile(BaseModel):
 class GroupSuggestionData(BaseModel):
     name: str
     search_keyword: str
+    # Set only for REAL groups found via web-search discovery.
+    group_url: str | None = None
     estimated_size: str = "unknown"
     relevance_score: int = Field(ge=0, le=100)
     lead_quality_score: int = Field(ge=0, le=100)
@@ -86,9 +89,50 @@ async def detect_niche(*, brand_name: str, website_text: str, vertical: str | No
         return NicheProfile(category=vertical or "General", summary="", keywords=keywords)
 
 
+def _rank_discovered(
+    brand_name: str, niche: NicheProfile, discovered: list[DiscoveredGroup]
+) -> list[GroupSuggestionData]:
+    """Turn REAL discovered groups into ranked suggestions (heuristic scores by
+    result order — the groups are verified to exist, which is the key part)."""
+    keyword = niche.keywords[0] if niche.keywords else niche.category.lower()
+    out: list[GroupSuggestionData] = []
+    for i, g in enumerate(discovered):
+        relevance = max(60, 95 - i * 4)
+        out.append(
+            GroupSuggestionData(
+                name=g.name,
+                search_keyword=keyword,
+                group_url=g.url,
+                estimated_size="unknown",
+                relevance_score=relevance,
+                lead_quality_score=max(50, relevance - 8),
+                rationale=(
+                    g.snippet
+                    or f"Real Facebook group relevant to {niche.category} — found via web search."
+                ),
+                suggested_post_angle=(
+                    f"Share a helpful {niche.category.lower()} tip, then introduce "
+                    f"{brand_name} and invite a conversation."
+                ),
+            )
+        )
+    return out
+
+
 async def suggest_groups(*, brand_name: str, niche: NicheProfile) -> list[GroupSuggestionData]:
-    """Produce ranked Facebook-group suggestions for lead gen."""
+    """Produce ranked Facebook-group suggestions for lead gen.
+
+    Prefers REAL groups discovered via web search (GROUP_SEARCH_PROVIDER); falls
+    back to AI-advisory suggestions when discovery is off or finds nothing."""
     settings = get_settings()
+
+    try:
+        discovered = await discover_groups(category=niche.category, keywords=niche.keywords)
+    except Exception as exc:  # noqa: BLE001 - discovery is best-effort
+        logger.warning("group discovery failed, using advisory suggestions: %s", exc)
+        discovered = []
+    if discovered:
+        return _rank_discovered(brand_name, niche, discovered)
 
     if settings.llm_provider == "mock":
         return _mock_suggestions(brand_name, niche)

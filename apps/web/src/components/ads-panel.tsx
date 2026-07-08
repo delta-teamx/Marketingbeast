@@ -19,6 +19,8 @@ export function AdsPanel({ brandId }: { brandId: string }) {
   const [budget, setBudget] = useState("25");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // null = still loading; false = live mode (Ads Manager is coming soon).
+  const [adsEnabled, setAdsEnabled] = useState<boolean | null>(null);
 
   async function run(fn: () => Promise<void>) {
     setError(null);
@@ -42,9 +44,41 @@ export function AdsPanel({ brandId }: { brandId: string }) {
   };
 
   useEffect(() => {
-    reload().catch((e) => setError((e as Error).message));
+    api
+      .config()
+      .then((c) => {
+        setAdsEnabled(c.ads_enabled);
+        if (c.ads_enabled) return reload();
+      })
+      .catch((e) => setError((e as Error).message));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [brandId]);
+
+  // Live mode: the real Meta Marketing API path isn't built yet — show a clear
+  // coming-soon state instead of a connect flow that can't work.
+  if (adsEnabled === false) {
+    return (
+      <section className="flex flex-col gap-3">
+        <h2 className="text-xl font-medium">Ads manager</h2>
+        <div className="card flex flex-col gap-2 p-5">
+          <div className="flex items-center gap-2">
+            <span className="text-lg">🚧</span>
+            <span className="font-medium">Coming soon</span>
+          </div>
+          <p className="text-sm text-white/60">
+            Launch and optimize paid Meta ad campaigns from here — auto-generated
+            creatives and pause/scale recommendations. It needs Meta Marketing API
+            access (<code className="text-white/70">ads_management</code>) and its
+            own App Review, which we&apos;re rolling out next.
+          </p>
+          <p className="text-xs text-white/40">
+            Your organic posting, content, and Instagram/Facebook publishing are
+            live and unaffected.
+          </p>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="flex flex-col gap-4">
@@ -52,18 +86,25 @@ export function AdsPanel({ brandId }: { brandId: string }) {
       {error && <p className="text-sm text-red-400">{error}</p>}
 
       {accounts.length === 0 ? (
-        <div className="flex items-center gap-3">
-          <p className="text-sm text-white/60">Connect an ad account to launch campaigns.</p>
-          <button
-            disabled={busy}
-            onClick={() => run(async () => {
-              await api.connectAdAccount(brandId);
-              await reload();
-            })}
-            className="btn-primary rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50"
-          >
-            Connect ad account
-          </button>
+        <div className="flex flex-col gap-2">
+          <p className="text-sm text-white/60">
+            Connect an ad account to plan campaigns and auto-generate creative variations.
+          </p>
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              disabled={busy}
+              onClick={() => run(async () => {
+                await api.connectAdAccount(brandId);
+                await reload();
+              })}
+              className="btn-primary rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50"
+            >
+              Connect ad account
+            </button>
+            <span className="text-xs text-white/40">
+              Live Meta ad spend arrives after Marketing API approval — available now in demo mode.
+            </span>
+          </div>
         </div>
       ) : (
         <>

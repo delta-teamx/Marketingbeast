@@ -78,6 +78,24 @@ class Settings(BaseSettings):
     video_cost_credits: int = Field(default=10, alias="VIDEO_COST_CREDITS")
     starter_credits: int = Field(default=100, alias="STARTER_CREDITS")
 
+    # AI post-image generation (Claude writes the art-direction prompt; an image
+    # model renders it — Claude/Anthropic cannot generate images itself).
+    # "mock" (default) returns a deterministic placeholder image URL; "openai"
+    # renders with OpenAI Images. Requires IMAGE_API_KEY for the live provider.
+    image_provider: str = Field(default="mock", alias="IMAGE_PROVIDER")
+    image_api_key: str = Field(default="", alias="IMAGE_API_KEY")
+    image_model: str = Field(default="gpt-image-1", alias="IMAGE_MODEL")
+    image_base_url: str = Field(default="https://api.openai.com/v1", alias="IMAGE_BASE_URL")
+
+    # Real Facebook-group discovery via a web-search API (Meta has no Groups API).
+    # "none" (default) keeps suggestions AI-advisory; "tavily" finds real public
+    # facebook.com/groups pages. Requires GROUP_SEARCH_API_KEY for a live provider.
+    group_search_provider: str = Field(default="none", alias="GROUP_SEARCH_PROVIDER")
+    group_search_api_key: str = Field(default="", alias="GROUP_SEARCH_API_KEY")
+    group_search_base_url: str = Field(
+        default="https://api.tavily.com", alias="GROUP_SEARCH_BASE_URL"
+    )
+
     # Billing (Stripe). "mock" (default) applies upgrades instantly for dev/tests;
     # "stripe" uses Checkout + webhooks.
     billing_provider: str = Field(default="mock", alias="BILLING_PROVIDER")

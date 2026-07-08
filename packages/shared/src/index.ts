@@ -347,6 +347,7 @@ export interface GroupSuggestion {
   brand_id: string;
   name: string;
   search_keyword: string;
+  group_url: string | null;
   estimated_size: string | null;
   relevance_score: number;
   lead_quality_score: number;

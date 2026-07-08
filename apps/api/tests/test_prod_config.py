@@ -45,11 +45,19 @@ def test_production_allows_properly_configured_secrets() -> None:
     _validate_production_settings(_settings())
 
 
-def test_production_rejects_dev_auth_mode() -> None:
-    # AUTH_MODE=dev is a full authentication bypass — it must never boot in prod,
-    # even though its forged demo user wouldn't otherwise need a real JWT secret.
+def test_production_overrides_dev_auth_when_secret_available() -> None:
+    # AUTH_MODE=dev must never run in prod, but with a valid JWT secret we disable
+    # the bypass and keep the server up (no outage) rather than crashing.
+    s = _settings(auth_mode="dev")  # default has a real jwt secret
+    _validate_production_settings(s)
+    assert s.auth_mode == "supabase"
+
+
+def test_production_rejects_dev_auth_without_valid_secret() -> None:
+    # No secure fallback available → refuse to boot.
+    s = _settings(auth_mode="dev", supabase_jwt_secret=_DEV_JWT_SECRET)
     with pytest.raises(RuntimeError, match="AUTH_MODE=dev"):
-        _validate_production_settings(_settings(auth_mode="dev"))
+        _validate_production_settings(s)
 
 
 def test_production_warns_but_boots_with_mock_providers(caplog: pytest.LogCaptureFixture) -> None:

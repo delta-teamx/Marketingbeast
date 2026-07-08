@@ -48,6 +48,9 @@ class GroupSuggestion(Base, TimestampMixin):
     name: Mapped[str] = mapped_column(String(300), nullable=False)
     # Keyword the user types into Facebook's group search to find it.
     search_keyword: Mapped[str] = mapped_column(String(300), nullable=False)
+    # Direct link to a REAL group when found via web-search discovery; NULL for
+    # AI-advisory suggestions (user searches by keyword instead).
+    group_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     estimated_size: Mapped[str | None] = mapped_column(String(50), nullable=True)
     relevance_score: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     lead_quality_score: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
