@@ -26,6 +26,7 @@ class GroupSuggestionOut(BaseModel):
     brand_id: uuid.UUID
     name: str
     search_keyword: str
+    group_url: str | None = None
     estimated_size: str | None
     relevance_score: int
     lead_quality_score: int

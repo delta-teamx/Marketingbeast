@@ -74,6 +74,7 @@ async def generate_suggestions(
             brand_id=brand.id,
             name=s.name,
             search_keyword=s.search_keyword,
+            group_url=s.group_url,
             estimated_size=s.estimated_size,
             relevance_score=s.relevance_score,
             lead_quality_score=s.lead_quality_score,

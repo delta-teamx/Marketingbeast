@@ -907,7 +907,14 @@ function SuggestionCard({
   return (
     <li className="flex flex-col gap-2 rounded-md border border-white/10 p-3">
       <div className="flex items-center justify-between gap-3">
-        <span className="font-medium">{s.name}</span>
+        <span className="flex items-center gap-2 font-medium">
+          {s.name}
+          {s.group_url && (
+            <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-emerald-400">
+              Real group
+            </span>
+          )}
+        </span>
         <span className="text-xs text-white/50">
           relevance {s.relevance_score} · leads {s.lead_quality_score}
           {s.estimated_size ? ` · ${s.estimated_size}` : ""}
@@ -915,14 +922,25 @@ function SuggestionCard({
       </div>
       {s.rationale && <p className="text-sm text-white/70">{s.rationale}</p>}
       <div className="flex flex-wrap items-center gap-2 text-sm">
-        <a
-          href={searchUrl}
-          target="_blank"
-          rel="noreferrer"
-          className="rounded-md border border-white/20 px-3 py-1 hover:bg-white/5"
-        >
-          Search on Facebook
-        </a>
+        {s.group_url ? (
+          <a
+            href={s.group_url}
+            target="_blank"
+            rel="noreferrer"
+            className="rounded-md border border-white/20 px-3 py-1 hover:bg-white/5"
+          >
+            Open group ↗
+          </a>
+        ) : (
+          <a
+            href={searchUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="rounded-md border border-white/20 px-3 py-1 hover:bg-white/5"
+          >
+            Search on Facebook
+          </a>
+        )}
         {s.status === "tracked" ? (
           <span className="text-xs text-emerald-400">Tracked</span>
         ) : (
