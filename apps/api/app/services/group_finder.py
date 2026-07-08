@@ -89,8 +89,56 @@ async def detect_niche(*, brand_name: str, website_text: str, vertical: str | No
         return NicheProfile(category=vertical or "General", summary="", keywords=keywords)
 
 
+def _mock_queries(niche: NicheProfile, audience: str) -> list[str]:
+    cat = niche.category.lower()
+    aud = (audience or "customers").strip().lower()
+    return [
+        f"{aud} facebook group",
+        f"{cat} help facebook group",
+        f"{cat} recommendations facebook group",
+        f"local community facebook group {cat}",
+    ]
+
+
+async def lead_search_queries(
+    *, brand_name: str, niche: NicheProfile, audience: str, goal: str
+) -> list[str]:
+    """Web-search queries that find groups where the business's CUSTOMERS gather —
+    where leads are, not industry-peer/professional groups.
+
+    e.g. an HVAC company -> homeowner / home-improvement / local community groups
+    where people complain about HVAC issues and ask for recommendations."""
+    settings = get_settings()
+    if settings.llm_provider == "mock":
+        return _mock_queries(niche, audience)
+
+    system = (
+        "You find where a business's POTENTIAL CUSTOMERS gather in Facebook Groups "
+        "so it can generate leads — NOT industry-peer or professional groups. "
+        "Return ONLY a JSON array of 4-6 short web-search queries that would surface "
+        "Facebook groups where its buyers ask for help, complain about the problem it "
+        "solves, or seek recommendations. Favor local community, homeowner, buyer, and "
+        "problem-discussion groups. Example — an HVAC company: "
+        '["homeowners facebook group", "home improvement advice facebook group", '
+        '"HVAC problems homeowners facebook group", "local neighborhood facebook group"].'
+    )
+    user = (
+        f"Business: {brand_name}\nNiche: {niche.category}\n"
+        f"Keywords: {', '.join(niche.keywords)}\n"
+        f"Their customers: {audience or 'unknown'}\nGoal: {goal or 'more leads'}"
+    )
+    result = await get_llm_provider().agenerate(system, [Message(role="user", content=user)])
+    try:
+        arr = _extract_json(result.text)
+        queries = [str(q).strip() for q in arr if isinstance(q, str) and str(q).strip()]
+        return queries[:6] or _mock_queries(niche, audience)
+    except (ValueError, json.JSONDecodeError) as exc:
+        logger.warning("lead-query JSON parse failed, using defaults: %s", exc)
+        return _mock_queries(niche, audience)
+
+
 def _rank_discovered(
-    brand_name: str, niche: NicheProfile, discovered: list[DiscoveredGroup]
+    niche: NicheProfile, discovered: list[DiscoveredGroup]
 ) -> list[GroupSuggestionData]:
     """Turn REAL discovered groups into ranked suggestions (heuristic scores by
     result order — the groups are verified to exist, which is the key part)."""
@@ -108,43 +156,54 @@ def _rank_discovered(
                 lead_quality_score=max(50, relevance - 8),
                 rationale=(
                     g.snippet
-                    or f"Real Facebook group relevant to {niche.category} — found via web search."
+                    or f"Real Facebook group where potential {niche.category} customers gather."
                 ),
                 suggested_post_angle=(
-                    f"Share a helpful {niche.category.lower()} tip, then introduce "
-                    f"{brand_name} and invite a conversation."
+                    f"Answer a common {niche.category.lower()} question here, then offer "
+                    "help — build trust before pitching."
                 ),
             )
         )
     return out
 
 
-async def suggest_groups(*, brand_name: str, niche: NicheProfile) -> list[GroupSuggestionData]:
-    """Produce ranked Facebook-group suggestions for lead gen.
+async def suggest_groups(
+    *, brand_name: str, niche: NicheProfile, audience: str = "", goal: str = ""
+) -> list[GroupSuggestionData]:
+    """Ranked Facebook-group suggestions for lead gen.
 
-    Prefers REAL groups discovered via web search (GROUP_SEARCH_PROVIDER); falls
-    back to AI-advisory suggestions when discovery is off or finds nothing."""
+    When real discovery is enabled (GROUP_SEARCH_PROVIDER), returns ONLY real
+    groups where the business's customers gather (may be empty). Otherwise falls
+    back to AI-advisory suggestions."""
     settings = get_settings()
+    discovery_on = settings.group_search_provider not in ("", "none")
 
-    try:
-        discovered = await discover_groups(category=niche.category, keywords=niche.keywords)
-    except Exception as exc:  # noqa: BLE001 - discovery is best-effort
-        logger.warning("group discovery failed, using advisory suggestions: %s", exc)
-        discovered = []
-    if discovered:
-        return _rank_discovered(brand_name, niche, discovered)
+    if discovery_on:
+        try:
+            queries = await lead_search_queries(
+                brand_name=brand_name, niche=niche, audience=audience, goal=goal
+            )
+            discovered = await discover_groups(queries=queries)
+        except Exception as exc:  # noqa: BLE001 - discovery is best-effort
+            logger.warning("group discovery failed: %s", exc)
+            discovered = []
+        # Real discovery is authoritative — never mix in invented groups.
+        return _rank_discovered(niche, discovered)
 
     if settings.llm_provider == "mock":
         return _mock_suggestions(brand_name, niche)
 
     system = (
-        "You suggest Facebook Groups a business should join to find leads. "
-        "Respond ONLY with a JSON array of objects: "
-        '{"name", "search_keyword", "estimated_size", "relevance_score" (0-100), '
-        '"lead_quality_score" (0-100), "rationale", "suggested_post_angle"}. '
-        "Prefer active, buyer-intent communities; avoid spammy promo groups."
+        "You suggest Facebook Groups a business should join to find leads — groups "
+        "where its CUSTOMERS gather, not industry-peer groups. Respond ONLY with a "
+        'JSON array of objects: {"name", "search_keyword", "estimated_size", '
+        '"relevance_score" (0-100), "lead_quality_score" (0-100), "rationale", '
+        '"suggested_post_angle"}. Prefer active, buyer-intent communities.'
     )
-    user = f"Business: {brand_name}\nNiche: {niche.category}\nKeywords: {', '.join(niche.keywords)}"
+    user = (
+        f"Business: {brand_name}\nNiche: {niche.category}\n"
+        f"Keywords: {', '.join(niche.keywords)}\nTheir customers: {audience or 'unknown'}"
+    )
     result = await get_llm_provider().agenerate(system, [Message(role="user", content=user)])
     try:
         raw = _extract_json(result.text)

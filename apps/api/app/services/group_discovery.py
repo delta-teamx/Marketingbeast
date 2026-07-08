@@ -55,46 +55,83 @@ def _dedupe(groups: list[DiscoveredGroup]) -> list[DiscoveredGroup]:
     return out
 
 
-async def discover_groups(
-    *, category: str, keywords: list[str], limit: int = 10
-) -> list[DiscoveredGroup]:
-    """Discover real Facebook groups for a niche. Returns [] when the feature is
-    off (GROUP_SEARCH_PROVIDER=none) so callers fall back to advisory suggestions."""
+def _extract_group_urls(text: str) -> list[str]:
+    """All canonical Facebook group URLs mentioned in a blob of text, in order."""
+    out: list[str] = []
+    seen: set[str] = set()
+    for m in _GROUP_URL_RE.finditer(text or ""):
+        url = _canonical_group_url(m.group(0))
+        if url and url not in seen:
+            seen.add(url)
+            out.append(url)
+    return out
+
+
+def _name_from_url(url: str) -> str:
+    slug = url.rstrip("/").split("/")[-1]
+    if slug.isdigit():
+        return "Facebook group"
+    return slug.replace("-", " ").replace(".", " ").replace("_", " ").title()
+
+
+async def discover_groups(*, queries: list[str], limit: int = 12) -> list[DiscoveredGroup]:
+    """Discover REAL Facebook groups for a set of lead-focused search queries.
+
+    Returns [] when the feature is off (GROUP_SEARCH_PROVIDER=none). Group links are
+    extracted both from result URLs and from result content (e.g. 'best FB groups
+    for X' round-ups), since Facebook itself is largely uncrawlable."""
     provider = get_settings().group_search_provider
-    if provider in ("", "none"):
+    if provider in ("", "none") or not queries:
         return []
     if provider == "tavily":
-        return await _tavily(category, keywords, limit)
+        return await _tavily(queries, limit)
     logger.warning("unknown GROUP_SEARCH_PROVIDER=%s; skipping discovery", provider)
     return []
 
 
-async def _tavily(category: str, keywords: list[str], limit: int) -> list[DiscoveredGroup]:
+async def _tavily(queries: list[str], limit: int) -> list[DiscoveredGroup]:
     settings = get_settings()
     if not settings.group_search_api_key:
         raise RuntimeError("GROUP_SEARCH_API_KEY is required for the tavily group search provider")
-    kw = " ".join(keywords[:4])
-    query = f"active Facebook groups for {category} {kw}".strip()
-    async with httpx.AsyncClient(timeout=30) as client:
-        resp = await client.post(
-            f"{settings.group_search_base_url.rstrip('/')}/search",
-            json={
-                "api_key": settings.group_search_api_key,
-                "query": query,
-                "max_results": min(20, max(limit, 10)),
-                "include_domains": ["facebook.com"],
-            },
-        )
-    if resp.status_code >= 400:
-        raise RuntimeError(f"Tavily {resp.status_code}: {resp.text}")
-
+    base = settings.group_search_base_url.rstrip("/")
     groups: list[DiscoveredGroup] = []
-    for r in resp.json().get("results", []):
-        url = _canonical_group_url(r.get("url", ""))
-        if not url:
-            continue
-        title = (r.get("title") or "Facebook group").replace(" | Facebook", "").strip()
-        groups.append(
-            DiscoveredGroup(name=title[:300], url=url, snippet=(r.get("content") or "")[:280])
-        )
-    return _dedupe(groups)[:limit]
+    seen: set[str] = set()
+
+    async with httpx.AsyncClient(timeout=30) as client:
+        for query in queries[:6]:
+            try:
+                resp = await client.post(
+                    f"{base}/search",
+                    json={
+                        "api_key": settings.group_search_api_key,
+                        "query": query,
+                        "max_results": 6,
+                        "search_depth": "advanced",
+                        "include_raw_content": True,
+                    },
+                )
+            except httpx.HTTPError as exc:
+                logger.warning("tavily query failed (%s): %s", query, exc)
+                continue
+            if resp.status_code >= 400:
+                logger.warning("tavily %s: %s", resp.status_code, resp.text[:200])
+                continue
+
+            for r in resp.json().get("results", []):
+                result_url = r.get("url", "")
+                result_group = _canonical_group_url(result_url)
+                title = (r.get("title") or "").replace(" | Facebook", "").strip()
+                blob = f"{result_url}\n{r.get('content', '')}\n{r.get('raw_content') or ''}"
+                for url in _extract_group_urls(blob):
+                    if url in seen:
+                        continue
+                    seen.add(url)
+                    name = title if (result_group == url and title) else _name_from_url(url)
+                    groups.append(
+                        DiscoveredGroup(
+                            name=name[:300], url=url, snippet=(r.get("content") or "")[:280]
+                        )
+                    )
+                    if len(groups) >= limit:
+                        return groups
+    return groups

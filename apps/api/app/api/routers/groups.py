@@ -5,12 +5,13 @@ from __future__ import annotations
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user, get_db, require_brand_access
 from app.core.security import AuthenticatedUser
-from app.models.group import GroupSuggestion
+from app.models.group import GroupSuggestion, SuggestionStatus
+from app.models.onboarding import OnboardingProfile
 from app.schemas.group import (
     GenerateSuggestionsIn,
     GroupSuggestionOut,
@@ -66,8 +67,24 @@ async def generate_suggestions(
     niche_dict = await _ensure_niche(session, brand)
     from app.services.group_finder import NicheProfile
 
+    # Pull the brand's target customers + goal from onboarding so discovery targets
+    # groups where LEADS are (e.g. homeowners), not industry-peer groups.
+    profile = await session.scalar(
+        select(OnboardingProfile).where(OnboardingProfile.brand_id == brand.id)
+    )
     suggestions = await suggest_groups(
-        brand_name=brand.name, niche=NicheProfile(**niche_dict.model_dump())
+        brand_name=brand.name,
+        niche=NicheProfile(**niche_dict.model_dump()),
+        audience=(profile.target_audience if profile else "") or "",
+        goal=(profile.goal if profile else "") or "",
+    )
+    # Replace stale auto-suggestions so old (possibly advisory) ones don't linger;
+    # keep anything the user tracked or dismissed.
+    await session.execute(
+        delete(GroupSuggestion).where(
+            GroupSuggestion.brand_id == brand.id,
+            GroupSuggestion.status == SuggestionStatus.suggested,
+        )
     )
     rows = [
         GroupSuggestion(
