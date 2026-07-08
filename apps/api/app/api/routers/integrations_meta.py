@@ -88,7 +88,13 @@ async def connect_mock(
     session: AsyncSession = Depends(get_db),
 ) -> list:
     if get_settings().meta_mode != "mock":
-        raise HTTPException(status_code=400, detail="connect-mock is disabled (META_MODE != mock)")
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "Demo account connect is only available in demo mode. Use "
+                "“Connect Facebook & Instagram” to link your real Page."
+            ),
+        )
     await require_brand_access(payload.brand_id, session=session, user=user)
     accounts = await get_meta_client().exchange_code_for_accounts(payload.code)
     return await upsert_connected_accounts(session, payload.brand_id, accounts)

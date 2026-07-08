@@ -52,18 +52,25 @@ export function AdsPanel({ brandId }: { brandId: string }) {
       {error && <p className="text-sm text-red-400">{error}</p>}
 
       {accounts.length === 0 ? (
-        <div className="flex items-center gap-3">
-          <p className="text-sm text-white/60">Connect an ad account to launch campaigns.</p>
-          <button
-            disabled={busy}
-            onClick={() => run(async () => {
-              await api.connectAdAccount(brandId);
-              await reload();
-            })}
-            className="btn-primary rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50"
-          >
-            Connect ad account
-          </button>
+        <div className="flex flex-col gap-2">
+          <p className="text-sm text-white/60">
+            Connect an ad account to plan campaigns and auto-generate creative variations.
+          </p>
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              disabled={busy}
+              onClick={() => run(async () => {
+                await api.connectAdAccount(brandId);
+                await reload();
+              })}
+              className="btn-primary rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50"
+            >
+              Connect ad account
+            </button>
+            <span className="text-xs text-white/40">
+              Live Meta ad spend arrives after Marketing API approval — available now in demo mode.
+            </span>
+          </div>
         </div>
       ) : (
         <>

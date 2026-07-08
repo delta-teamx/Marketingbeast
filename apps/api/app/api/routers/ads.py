@@ -39,7 +39,14 @@ async def connect_ad_account(
     session: AsyncSession = Depends(get_db),
 ) -> AdAccount:
     if get_settings().meta_mode != "mock":
-        raise HTTPException(status_code=400, detail="connect-mock is disabled (META_MODE != mock)")
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "Ads Manager isn't available yet in live mode — it needs Meta "
+                "Marketing API access (ads_management) and App Review. It's fully "
+                "usable in demo mode."
+            ),
+        )
     brand = await require_brand_access(brand_id, session=session, user=user)
     return await connect_mock_account(session, brand)
 
