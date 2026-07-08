@@ -36,16 +36,33 @@ _DEV_JWT_SECRET = "super-secret-jwt-token-with-at-least-32-characters-long"
 
 
 def _validate_production_settings(settings: Settings) -> None:
-    """Fail fast at boot if production is missing critical secrets, rather than
-    silently running with insecure defaults that only break (or get exploited)
-    at request time."""
+    """Keep production secure without taking the whole server down over a single
+    stray env var. Where we can run securely, self-correct and warn loudly; only
+    refuse to boot when there is genuinely no safe way to run."""
     if settings.api_env != "production":
         return
+    logger = logging.getLogger("presence.startup")
+
+    # AUTH_MODE=dev hands every request a fixed demo user with no token check — a
+    # full auth bypass. But rather than crash the entire deployment, disable the
+    # bypass and fall back to real Supabase auth whenever we have a usable JWT
+    # secret. The server stays UP and secure; only a config with no secure path
+    # (below) refuses to boot.
+    if settings.auth_mode == "dev" and (
+        settings.supabase_jwt_secret and settings.supabase_jwt_secret != _DEV_JWT_SECRET
+    ):
+        logger.critical(
+            "AUTH_MODE=dev is not permitted in production — overriding to supabase auth. "
+            "Set AUTH_MODE=supabase in the environment to remove this override."
+        )
+        settings.auth_mode = "supabase"
+
     problems: list[str] = []
-    # The dev auth mode hands every request a single fixed demo user with no token
-    # check — shipping it in production is a full authentication bypass.
     if settings.auth_mode == "dev":
-        problems.append("AUTH_MODE=dev is a development-only auth bypass (set AUTH_MODE=supabase)")
+        problems.append(
+            "AUTH_MODE=dev is a development-only auth bypass and no valid "
+            "SUPABASE_JWT_SECRET is set to fall back to (set AUTH_MODE=supabase + secret)"
+        )
     if settings.auth_mode == "supabase" and settings.supabase_jwt_secret == _DEV_JWT_SECRET:
         problems.append("SUPABASE_JWT_SECRET is still the insecure development default")
     if not settings.fernet_key:
@@ -59,7 +76,6 @@ def _validate_production_settings(settings: Settings) -> None:
     # Providers still on the in-process mock won't break the app, but they aren't
     # real — surface them loudly so a production deploy never silently fakes
     # publishing, billing, or media generation.
-    logger = logging.getLogger("presence.startup")
     if settings.meta_mode != "live":
         logger.warning("META_MODE=%s — Facebook/Instagram run in MOCK mode", settings.meta_mode)
     if settings.billing_provider != "stripe":
