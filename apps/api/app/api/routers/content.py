@@ -50,6 +50,12 @@ async def create_content(
     if not set(payload.target_account_ids).issubset(valid_ids):
         raise HTTPException(status_code=400, detail="Target account does not belong to brand")
 
+    # A draft needs no targets; scheduling to publish later does.
+    if payload.scheduled_time and not payload.target_account_ids:
+        raise HTTPException(
+            status_code=400, detail="Pick at least one account to schedule a post."
+        )
+
     return await create_content_item(
         session,
         brand_id=payload.brand_id,

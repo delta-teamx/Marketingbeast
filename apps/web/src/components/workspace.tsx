@@ -661,7 +661,9 @@ function Composer({
     setTargets((t) => (t.includes(id) ? t.filter((x) => x !== id) : [...t, id]));
   }
 
-  const disabled = !body || targets.length === 0 || busy;
+  // A draft only needs body text. Scheduling to publish needs a target account.
+  const needsTarget = !!scheduledAt;
+  const disabled = !body || busy || (needsTarget && targets.length === 0);
 
   return (
     <section className="flex flex-col gap-3">
@@ -721,6 +723,12 @@ function Composer({
           {busy ? "Saving…" : scheduledAt ? "Schedule" : "Save draft"}
         </button>
       </div>
+      {needsTarget && targets.length === 0 && (
+        <p className="text-xs text-white/50">
+          Pick at least one account above to schedule. You can also save it as a draft
+          (clear the schedule) and choose accounts later.
+        </p>
+      )}
     </section>
   );
 }

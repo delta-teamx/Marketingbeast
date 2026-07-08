@@ -15,7 +15,8 @@ class ContentCreate(BaseModel):
     body: str = Field(default="", max_length=5000)
     content_type: ContentType = ContentType.post
     media_urls: list[str] | None = None
-    target_account_ids: list[uuid.UUID] = Field(min_length=1)
+    # Targets are optional for a plain draft; attached when scheduling/publishing.
+    target_account_ids: list[uuid.UUID] = Field(default_factory=list)
     scheduled_time: datetime | None = None
 
 
