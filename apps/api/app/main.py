@@ -16,6 +16,7 @@ from app.api.routers import (
     automation,
     billing,
     brands,
+    config,
     content,
     groups,
     health,
@@ -107,6 +108,7 @@ def create_app() -> FastAPI:
     )
 
     app.include_router(health.router)
+    app.include_router(config.router)
     app.include_router(auth.router)
     app.include_router(organizations.router)
     app.include_router(brands.router)

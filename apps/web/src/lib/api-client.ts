@@ -84,6 +84,7 @@ async function call<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export const api = {
+  config: () => call<{ ads_enabled: boolean }>("/api/config"),
   me: () => call<Me>("/api/auth/me"),
   conversationalOnboarding: (message: string) =>
     call<import("@presence/shared").ConversationalStrategy>(
