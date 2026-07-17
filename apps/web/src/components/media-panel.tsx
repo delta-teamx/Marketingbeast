@@ -17,6 +17,8 @@ export function MediaPanel({
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // null = loading; false = no render provider yet (Reels are coming soon).
+  const [mediaEnabled, setMediaEnabled] = useState<boolean | null>(null);
 
   async function run(fn: () => Promise<void>) {
     setError(null);
@@ -42,9 +44,38 @@ export function MediaPanel({
   };
 
   useEffect(() => {
-    reload().catch((e) => setError((e as Error).message));
+    api
+      .config()
+      .then((c) => {
+        setMediaEnabled(c.media_enabled);
+        if (c.media_enabled) return reload();
+      })
+      .catch((e) => setError((e as Error).message));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [brandId]);
+
+  if (mediaEnabled === false) {
+    return (
+      <section className="flex flex-col gap-3">
+        <h2 className="text-xl font-medium">Reels &amp; video</h2>
+        <div className="card flex flex-col gap-2 p-5">
+          <div className="flex items-center gap-2">
+            <span className="text-lg">🚧</span>
+            <span className="font-medium">Coming soon</span>
+          </div>
+          <p className="text-sm text-white/60">
+            AI-generated reels and short videos from a single prompt — script,
+            storyboard, and render. We&apos;re finishing the video render pipeline;
+            it&apos;ll light up here when it&apos;s ready.
+          </p>
+          <p className="text-xs text-white/40">
+            Your posts, images, content, and Instagram/Facebook publishing are live
+            and unaffected.
+          </p>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="flex flex-col gap-3">

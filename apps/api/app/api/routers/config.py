@@ -20,4 +20,10 @@ async def app_config() -> dict[str, bool]:
     # The Ads Manager's real Meta Marketing API path isn't implemented yet, so it
     # only functions against the mock adapter (demo mode). In live mode it's shown
     # as 'coming soon' rather than a connect button that can't work.
-    return {"ads_enabled": settings.meta_mode == "mock"}
+    #
+    # Reels/video needs a real render provider (MEDIA_PROVIDER != mock); until one
+    # is configured it's shown as 'coming soon' too.
+    return {
+        "ads_enabled": settings.meta_mode == "mock",
+        "media_enabled": settings.media_provider != "mock",
+    }
