@@ -9,10 +9,13 @@ from app.core.config import get_settings
 
 
 async def test_ads_enabled_in_mock_mode(client: AsyncClient) -> None:
-    # The suite runs with META_MODE defaulting to mock.
+    # The suite runs with META_MODE + MEDIA_PROVIDER defaulting to mock.
     resp = await client.get("/api/config")
     assert resp.status_code == 200
-    assert resp.json()["ads_enabled"] is True
+    body = resp.json()
+    assert body["ads_enabled"] is True
+    # No real render provider in tests → reels are coming soon.
+    assert body["media_enabled"] is False
 
 
 async def test_ads_disabled_in_live_mode(
