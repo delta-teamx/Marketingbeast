@@ -84,7 +84,7 @@ class Settings(BaseSettings):
     # renders with OpenAI Images. Requires IMAGE_API_KEY for the live provider.
     image_provider: str = Field(default="mock", alias="IMAGE_PROVIDER")
     image_api_key: str = Field(default="", alias="IMAGE_API_KEY")
-    image_model: str = Field(default="gpt-image-1", alias="IMAGE_MODEL")
+    image_model: str = Field(default="dall-e-3", alias="IMAGE_MODEL")
     image_base_url: str = Field(default="https://api.openai.com/v1", alias="IMAGE_BASE_URL")
 
     # Real Facebook-group discovery via a web-search API (Meta has no Groups API).
