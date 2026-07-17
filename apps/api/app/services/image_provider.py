@@ -81,16 +81,15 @@ class OpenAIImageProvider:
         prompt = brief.prompt
         if brief.brand_name:
             prompt = f"{prompt}\nBrand: {brief.brand_name}. No text or logos in the image."
+        payload: dict = {"model": self._model, "prompt": prompt, "n": 1, "size": brief.size}
+        # dall-e-2/3 can return a directly usable hosted URL; gpt-image-1 only b64.
+        if self._model.startswith("dall-e"):
+            payload["response_format"] = "url"
         async with httpx.AsyncClient(timeout=120) as client:
             resp = await client.post(
                 f"{self._base}/images/generations",
                 headers={"Authorization": f"Bearer {self._key}"},
-                json={
-                    "model": self._model,
-                    "prompt": prompt,
-                    "n": 1,
-                    "size": brief.size,
-                },
+                json=payload,
             )
         if resp.status_code >= 400:
             raise RuntimeError(f"OpenAI image {resp.status_code}: {resp.text}")
